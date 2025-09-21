@@ -1,0 +1,10 @@
+# Project exclude paths
+dependency-reduced-pom.xml
+*.iml
+/target
+/target/classes/META-INF/MANIFEST.MF
+/out
+/.idea/*
+!/.idea/runConfigurations/
+!/.idea/codeStyles/
+/.idea/codeStyles/Project.xml

@@ -11,8 +11,8 @@ public class Main {
             TelegramBot telegramBot = new TelegramBot();
             botsApplication.registerBot(telegramBot.getBotToken(), telegramBot);
             telegramBot.start();
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+        } catch (TelegramApiException exception) {
+            System.out.println("Error in TelegramAPI: " + exception.getMessage());
         }
     }
 }

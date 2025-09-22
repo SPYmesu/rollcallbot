@@ -10,50 +10,76 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import su.spyme.rollcallbot.api.TelegramBot;
-import su.spyme.rollcallbot.objects.Recall;
-import su.spyme.rollcallbot.objects.RecallAnswer;
-import su.spyme.rollcallbot.objects.RecallEntry;
-import su.spyme.rollcallbot.objects.Student;
+import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Bot {
 
-    TelegramBot telegramBot = new TelegramBot();
-    YamlFile yamlFile;
-    List<Recall> recalls = new ArrayList<>();
-    List<Student> students = new ArrayList<>();
+    public TelegramBot telegramBot = new TelegramBot();
+    public YamlFile yamlFile;
+    public List<Chat> chats;
 
     public void start(TelegramBot telegramBot) {
         try {
             this.telegramBot = telegramBot;
 
-            yamlFile = new YamlFile("/config.yml");
-            if (!yamlFile.exists()) yamlFile.createNewFile(); else yamlFile.load();
+            yamlFile = loadConfig("config");
 
-            ConfigurationSection section = yamlFile.getConfigurationSection("students");
-            Set<String> keys = section.getKeys(false);
-            for (String key : keys) {
-                students.add(new Student(Long.parseLong(key), yamlFile.getString("students." + key)));
+            ConfigurationSection chatsSection = yamlFile.getConfigurationSection("chats");
+            for (String chatId : chatsSection.getStringList("chatList")) {
+                YamlFile chatConfig = loadConfig(chatId);
+                ConfigurationSection studentsSection = chatConfig.getConfigurationSection("students");
+                List<Student> chatStudents = new ArrayList<>();
+                for (String key : studentsSection.getKeys(false)) {
+                    chatStudents.add(new Student(Long.parseLong(key), studentsSection.getString("students." + key)));
+                }
+                ConfigurationSection rollcallsSection = chatConfig.getConfigurationSection("rollcalls");
+                List<Rollcall> chatRollcalls = new ArrayList<>();
+                for (String key : rollcallsSection.getKeys(false)) {
+                    List<RollcallEntry> entries = new ArrayList<>();
+                    ConfigurationSection entriesSection = rollcallsSection.getConfigurationSection("entries");
+                    for (String entryKey : entriesSection.getKeys(false)) {
+                        entries.add(new RollcallEntry(
+                                getStudent(chatStudents, Long.parseLong(entryKey)),
+                                RollcallAnswer.valueOf(entriesSection.getString("entries." + entryKey + ".answer")),
+                                entriesSection.getInt("entries." + entryKey + ".times")
+                        ));
+                    }
+                    chatRollcalls.add(new Rollcall(
+                            Long.parseLong(chatId),
+                            rollcallsSection.getInt("rollcalls." + key + ".threadId"),
+                            Integer.parseInt(key),
+                            rollcallsSection.getInt("rollcalls." + key + ".tagAllMessageId"),
+                            rollcallsSection.getLong("rollcalls." + key + ".resultChatId"),
+                            rollcallsSection.getInt("rollcalls." + key + ".resultMessageId"),
+                            rollcallsSection.getString("rollcalls." + key + ".text"),
+                            entries
+                    ));
+                }
+                chats.add(new Chat(Long.parseLong(chatId), chatConfig, chatStudents, chatRollcalls));
             }
 
-            if (new Scanner(System.in).next().equals("stop")) System.exit(666);
-        } catch (Exception ex) {
+            if (new Scanner(System.in).next().equals("stop")) System.exit(-1);
+        } catch (Exception ignored) {
             System.out.println("Error while loading...");
-            ex.printStackTrace();
             try {
                 TimeUnit.SECONDS.sleep(5);
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
+            } catch (InterruptedException ignored1) {}
             System.exit(-1);
         }
+    }
+
+    public YamlFile loadConfig(String name) throws IOException {
+        YamlFile yamlFile = new YamlFile("storage/" + name + ".yml");
+        if (!yamlFile.exists()) yamlFile.createNewFile();
+        else yamlFile.load();
+        return yamlFile;
     }
 
     public void onUpdateReceived(Update update) throws TelegramApiException, IOException {
@@ -63,41 +89,44 @@ public class Bot {
             int messageId = update.getCallbackQuery().getMessage().getMessageId();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
             User user = update.getCallbackQuery().getFrom();
-            Recall recall = getRecall(chatId);
-            switch (callDataArray[0]) {
+            Rollcall rollcall = getRollcallById(chatId, Integer.parseInt(callDataArray[0]));
+            switch (callDataArray[1]) {
                 case "here", "notherereason", "nothere" -> {
-                    if (recall == null) {
+                    if (rollcall == null) {
                         answerInline(update, "Эта перекличка уже неактивна");
                         return;
                     }
-                    RecallEntry entry = recall.entries.stream().filter(it -> it.student.userId == user.getId()).findAny().orElse(null);
+                    RollcallEntry entry = rollcall.entries.stream().filter(it -> it.student.userId == user.getId()).findAny().orElse(null);
                     if (entry == null) {
                         answerInline(update, "Ты не зарегистрирован, обратись к старосте");
                         return;
                     }
-                    if (entry.answer != RecallAnswer.IGNORE) {
+                    if (entry.answer != RollcallAnswer.IGNORE) {
                         answerInline(update, "Ты уже сделал свой выбор...");
                         entry.addTimes();
                         return;
                     }
-                    RecallAnswer answer = RecallAnswer.getByName(callDataArray[0]);
-                    recall.entries.remove(entry);
+                    RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[0]);
+                    rollcall.entries.remove(entry);
                     entry.answer = answer;
-                    recall.entries.add(entry);
+                    rollcall.entries.add(entry);
                     answerInline(update, "Красотка! Ты самая лучшая! Выбор сохранен.");
                 }
                 default -> {
+                    answerInline(update, "Эта перекличка уже неактивна");
                     return;
                 }
             }
-            telegramBot.editMessageReplyMarkup(chatId, messageId, getWhoHere(recall));
-            telegramBot.editMessageText(recall.resultChatId, recall.resultMessageId, getRecallResult(recall));
+            telegramBot.editMessageReplyMarkup(chatId, messageId, getWhoHere(rollcall));
+            telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall));
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
             long chatId = update.getMessage().getChatId();
             int threadId = update.getMessage().getMessageThreadId() == null ? 0 : update.getMessage().getMessageThreadId();
             long userId = update.getMessage().getFrom().getId();
+            Chat chat = getChat(chatId);
+            List<Student> students = chat.students;
             switch (args[0]) {
                 case ".позвать", ".все" -> {
                     if (!isAdmin(update)) return;
@@ -105,40 +134,45 @@ public class Bot {
                 }
                 case ".перекличка", ".п" -> {
                     if (!isAdmin(update)) return;
+                    if (getRollcallByThread(chat, threadId) != null) {
+                        telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
+                        return;
+                    }
                     String text = "Перекличка на наличие на паре!!!";
                     if (args.length > 1) {
                         text = getArguments(1, args);
                     }
-                    List<RecallEntry> entries = new ArrayList<>();
+                    List<RollcallEntry> entries = new ArrayList<>();
                     for (Student student : students) {
-                        entries.add(new RecallEntry(student, RecallAnswer.IGNORE, 0));
+                        entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
                     }
-                    Recall recall = new Recall(chatId, 0, 0, 0L, 0, text, entries);
+                    Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
                     telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                    recall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
-                    recall.setRecallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(recall), recall.text).getMessageId());
-                    recall.setResultChatId(userId);
-                    recall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRecallResult(recall)).getMessageId());
-                    recalls.add(recall);
+                    rollcall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
+                    rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
+                    rollcall.setResultChatId(userId);
+                    rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall)).getMessageId());
+                    addRollcall(chat, rollcall);
                 }
                 case ".перекличкавсё", ".пв" -> {
                     if (!isAdmin(update)) return;
-                    Recall recall = getRecall(chatId);
-                    if (recall == null) {
+                    Rollcall rollcall = getRollcallByThread(chat, threadId);
+                    if (rollcall == null) {
                         sendError(chatId, threadId, "recall == null;");
                         return;
                     }
-                    telegramBot.deleteMessage(chatId, recall.recallMessageId);
-                    telegramBot.deleteMessage(chatId, recall.tagAllMessageId);
+                    telegramBot.deleteMessage(chatId, rollcall.rollcallMessageId);
+                    telegramBot.deleteMessage(chatId, rollcall.tagAllMessageId);
                     telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                    recalls.remove(recall);
-                    StringBuilder text = new StringBuilder("Перекличка `#" + recall.recallMessageId + "` завершена");
+                    removeRollcall(chat, rollcall);
+                    StringBuilder text = new StringBuilder("Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
 
-                    RecallEntry best = recall.entries.getFirst();
-                    for (RecallEntry entry : recall.entries) {
+                    RollcallEntry best = rollcall.entries.getFirst();
+                    for (RollcallEntry entry : rollcall.entries) {
                         if (entry.times > best.times) best = entry;
                     }
-                    if (best.times > 5) text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
+                    if (best.times > 5)
+                        text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
                     telegramBot.sendMessage(chatId, threadId, text.toString());
                 }
                 case ".студент", ".с" -> {
@@ -157,11 +191,11 @@ public class Bot {
                 }
                 case ".игнор" -> {
                     if (!isAdmin(update)) return;
-                    Recall recall = getRecall(chatId);
-                    if (recall != null) {
+                    Rollcall rollcall = getRollcallByThread(chat, threadId);
+                    if (rollcall != null) {
                         telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                        int ignoreMessageId = telegramBot.sendMessage(chatId, threadId, tag(recall.getStudents(RecallAnswer.IGNORE)) +"\n\nНе забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
-                        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> telegramBot.deleteMessage(chatId, ignoreMessageId), 0, 120, TimeUnit.SECONDS);
+                        int ignoreMessageId = telegramBot.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\nНе забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
+                        Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramBot.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
                     }
                 }
                 case ".помощь" -> {
@@ -190,12 +224,12 @@ public class Bot {
         telegramBot.sendMessageInline(chatId, threadId, getAdmin(), error + "\nУверен, что  сделал всё правильно? Если да:\n");
     }
 
-    private String getRecallResult(Recall recall) {
-        List<Student> here = recall.getStudents(RecallAnswer.HERE);
-        List<Student> notHere = recall.getStudents(RecallAnswer.NOTHERE);
-        List<Student> notHereReason = recall.getStudents(RecallAnswer.NOTHEREREASON);
-        List<Student> ignore = recall.getStudents(RecallAnswer.IGNORE);
-        StringBuilder builder = new StringBuilder("Результат переклички. `#" + recall.recallMessageId + "`");
+    private String getRollcallResult(Rollcall rollcall) {
+        List<Student> here = rollcall.getStudents(RollcallAnswer.HERE);
+        List<Student> notHere = rollcall.getStudents(RollcallAnswer.NOTHERE);
+        List<Student> notHereReason = rollcall.getStudents(RollcallAnswer.NOTHEREREASON);
+        List<Student> ignore = rollcall.getStudents(RollcallAnswer.IGNORE);
+        StringBuilder builder = new StringBuilder("Результат переклички. `#" + rollcall.rollcallMessageId + "`");
         builder.append("\n\n");
         builder.append("На паре: (").append(here.size()).append(")");
         for (Student student : here) {
@@ -265,12 +299,44 @@ public class Bot {
         return s.toString();
     }
 
-    public Student getStudent(long userId) {
+    public Student getStudent(List<Student> students, long userId) {
         return students.stream().filter(student -> student.userId == userId).findFirst().orElse(null);
     }
 
-    public Recall getRecall(long chatId) {
-        return recalls.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
+    public Chat getChat(long chatId) {
+        return chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
+    }
+
+    public Rollcall getRollcallById(long chatId, int rollcallId) {
+        return getRollcallById(getChat(chatId), rollcallId);
+    }
+
+    public Rollcall getRollcallById(Chat chat, int rollcallId) {
+        return chat.rollcalls.stream().filter(it -> it.rollcallMessageId == rollcallId).findFirst().orElse(null);
+    }
+
+    public Rollcall getRollcallByThread(Chat chat, int threadId) {
+        return chat.rollcalls.stream().filter(it -> it.threadId == threadId).findFirst().orElse(null);
+    }
+
+    public void addRollcall(Chat chat, Rollcall rollcall) {
+        chat.rollcalls.add(rollcall);
+        ConfigurationSection rollcallsSection = chat.config.getConfigurationSection("rollcalls");
+        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".tagAllMessageId", rollcall.tagAllMessageId);
+        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".resultChatId", rollcall.resultChatId);
+        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".resultMessageId", rollcall.resultMessageId);
+        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".text", rollcall.text);
+
+        ConfigurationSection entriesSection = rollcallsSection.getConfigurationSection("entries");
+        for (RollcallEntry entry : rollcall.entries) {
+            entriesSection.set("entries." + entry.student.userId + ".answer", entry.answer.name());
+            entriesSection.set("entries." + entry.student.userId + ".times", entry.times);
+        }
+    }
+
+    public void removeRollcall(Chat chat, Rollcall rollcall) {
+        chat.rollcalls.remove(rollcall);
+        chat.config.getConfigurationSection("rollcalls").set("rollcalls." + rollcall.rollcallMessageId, null);
     }
 
     public boolean isAdmin(Update update) {
@@ -292,11 +358,11 @@ public class Bot {
                 .build();
     }
 
-    private InlineKeyboardMarkup getWhoHere(Recall recall) {
+    private InlineKeyboardMarkup getWhoHere(Rollcall rollcall) {
         return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("✅ На паре (" + recall.getCount(RecallAnswer.HERE) + ")", "here ")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("\uD83E\uDD12 По ув. причине (" + recall.getCount(RecallAnswer.NOTHEREREASON) + ")", "notherereason ")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("❌ Прогуливаю (" + recall.getCount(RecallAnswer.NOTHERE) + ")", "nothere ")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton("✅ На паре (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton("\uD83E\uDD12 По ув. причине (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton("❌ Прогуливаю (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + "nothere")))
                 .build();
     }
 

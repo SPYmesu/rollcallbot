@@ -7,9 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class RecallEntry {
+public class RollcallEntry {
     public Student student;
-    public RecallAnswer answer;
+    public RollcallAnswer answer;
     public int times;
 
     public void addTimes() {

@@ -172,6 +172,10 @@ public class Bot {
                     if (update.getMessage().getReplyToMessage() != null) {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
                         String targetName = getArguments(1, args);
+                        if (targetName.split(" ").length < 2) {
+                            telegramBot.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента");
+                            return;
+                        }
                         Student student = new Student(targetId, targetName);
                         chat.config.set("students." + targetId, student.name);
                         chat.config.save();

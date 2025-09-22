@@ -114,7 +114,7 @@ public class Bot {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
             long chatId = update.getMessage().getChatId();
-            int threadId = update.getMessage().getMessageThreadId() == null ? 0 : update.getMessage().getMessageThreadId();
+            int threadId = update.getMessage().isSuperGroupMessage() ? 0 : update.getMessage().getMessageThreadId();
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;

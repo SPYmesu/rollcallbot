@@ -1,6 +1,5 @@
 package su.spyme.rollcallbot;
 
-import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -31,40 +30,37 @@ public class Bot {
 
             yamlFile = loadConfig("config");
 
-            ConfigurationSection chatsSection = yamlFile.getConfigurationSection("chats");
-            for (String chatId : chatsSection.getStringList("chatList")) {
+            List<String> chatsList = yamlFile.getStringList("chats");
+            chats = new ArrayList<>();
+            for (String chatId : chatsList) {
                 YamlFile chatConfig = loadConfig(chatId);
-                ConfigurationSection studentsSection = chatConfig.getConfigurationSection("students");
                 List<Student> chatStudents = new ArrayList<>();
-                for (String key : studentsSection.getKeys(false)) {
-                    chatStudents.add(new Student(Long.parseLong(key), studentsSection.getString("students." + key)));
+                for (String key : getKeys(chatConfig, "students")) {
+                    chatStudents.add(new Student(Long.parseLong(key), chatConfig.getString("students." + key)));
                 }
-                ConfigurationSection rollcallsSection = chatConfig.getConfigurationSection("rollcalls");
                 List<Rollcall> chatRollcalls = new ArrayList<>();
-                for (String key : rollcallsSection.getKeys(false)) {
+                for (String key : getKeys(chatConfig, "rollcalls")) {
                     List<RollcallEntry> entries = new ArrayList<>();
-                    ConfigurationSection entriesSection = rollcallsSection.getConfigurationSection("entries");
-                    for (String entryKey : entriesSection.getKeys(false)) {
+                    for (String entryKey : getKeys(chatConfig, "rollcalls." + key + ".entries")) {
                         entries.add(new RollcallEntry(
                                 getStudent(chatStudents, Long.parseLong(entryKey)),
-                                RollcallAnswer.valueOf(entriesSection.getString("entries." + entryKey + ".answer")),
-                                entriesSection.getInt("entries." + entryKey + ".times")
+                                RollcallAnswer.valueOf(chatConfig.getString("rollcalls." + key + ".entries." + entryKey + ".answer")),
+                                chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times")
                         ));
                     }
                     chatRollcalls.add(new Rollcall(
                             Long.parseLong(chatId),
-                            rollcallsSection.getInt("rollcalls." + key + ".threadId"),
+                            chatConfig.getInt("rollcalls." + key + ".threadId"),
                             Integer.parseInt(key),
-                            rollcallsSection.getInt("rollcalls." + key + ".tagAllMessageId"),
-                            rollcallsSection.getLong("rollcalls." + key + ".resultChatId"),
-                            rollcallsSection.getInt("rollcalls." + key + ".resultMessageId"),
-                            rollcallsSection.getString("rollcalls." + key + ".text"),
+                            chatConfig.getInt("rollcalls." + key + ".tagAllMessageId"),
+                            chatConfig.getLong("rollcalls." + key + ".resultChatId"),
+                            chatConfig.getInt("rollcalls." + key + ".resultMessageId"),
+                            chatConfig.getString("rollcalls." + key + ".text"),
                             entries
                     ));
                 }
                 chats.add(new Chat(Long.parseLong(chatId), chatConfig, chatStudents, chatRollcalls));
             }
-
             if (new Scanner(System.in).next().equals("stop")) System.exit(-1);
         } catch (Exception ignored) {
             System.out.println("Error while loading...");
@@ -73,13 +69,6 @@ public class Bot {
             } catch (InterruptedException ignored1) {}
             System.exit(-1);
         }
-    }
-
-    public YamlFile loadConfig(String name) throws IOException {
-        YamlFile yamlFile = new YamlFile("storage/" + name + ".yml");
-        if (!yamlFile.exists()) yamlFile.createNewFile();
-        else yamlFile.load();
-        return yamlFile;
     }
 
     public void onUpdateReceived(Update update) throws TelegramApiException, IOException {
@@ -104,12 +93,14 @@ public class Bot {
                     if (entry.answer != RollcallAnswer.IGNORE) {
                         answerInline(update, "Ты уже сделал свой выбор...");
                         entry.addTimes();
+                        setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
                         return;
                     }
-                    RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[0]);
+                    RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[1]);
                     rollcall.entries.remove(entry);
                     entry.answer = answer;
                     rollcall.entries.add(entry);
+                    setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", answer.name());
                     answerInline(update, "Красотка! Ты самая лучшая! Выбор сохранен.");
                 }
                 default -> {
@@ -150,6 +141,7 @@ public class Bot {
                     telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
                     rollcall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
                     rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
+                    telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getWhoHere(rollcall));
                     rollcall.setResultChatId(userId);
                     rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall)).getMessageId());
                     addRollcall(chat, rollcall);
@@ -181,8 +173,8 @@ public class Bot {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
                         String targetName = getArguments(1, args);
                         Student student = new Student(targetId, targetName);
-                        yamlFile.set("students." + targetId, student);
-                        yamlFile.save();
+                        chat.config.set("students." + targetId, student.name);
+                        chat.config.save();
                         students.add(student);
                         telegramBot.sendMessage(chatId, threadId, "Студент добавлен: " + targetName + " (" + targetId + ").");
                     } else {
@@ -220,8 +212,30 @@ public class Bot {
         }
     }
 
-    private void sendError(long chatId, int threadId, String error) {
-        telegramBot.sendMessageInline(chatId, threadId, getAdmin(), error + "\nУверен, что  сделал всё правильно? Если да:\n");
+    public YamlFile loadConfig(String name) throws IOException {
+        YamlFile yamlFile = new YamlFile("storage/" + name + ".yml");
+        if (!yamlFile.exists()) yamlFile.createNewFile();
+        else yamlFile.load();
+        return yamlFile;
+    }
+
+    public List<String> getKeys(YamlFile config, String section){
+        createSectionIfNotExist(config, section);
+        return config.getConfigurationSection(section).getKeys(false).stream().toList();
+    }
+
+    public void createSectionIfNotExist(YamlFile config, String path){
+        if(!config.contains(path)){
+            setAndSave(config, path + ".temp", 10);
+            setAndSave(config, path + ".temp", null);
+        }
+    }
+
+    public void setAndSave(YamlFile config, String path, Object value){
+        config.set(path, value);
+        try {
+            config.save();
+        } catch (IOException ignored) {}
     }
 
     private String getRollcallResult(Rollcall rollcall) {
@@ -304,7 +318,25 @@ public class Bot {
     }
 
     public Chat getChat(long chatId) {
-        return chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
+        Chat chat = chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
+        if (chat == null) {
+            try {
+                YamlFile chatConfig = loadConfig(String.valueOf(chatId));
+                chat = new Chat(chatId, chatConfig, new ArrayList<>(), new ArrayList<>());
+                chats.add(chat);
+                save();
+            } catch (IOException ignored) {}
+        }
+        return chat;
+    }
+
+    public void save() throws IOException {
+        List<String> chatIds = new ArrayList<>();
+        for (Chat chat : chats) {
+            chatIds.add(String.valueOf(chat.chatId));
+        }
+        yamlFile.set("chats", chatIds);
+        yamlFile.save();
     }
 
     public Rollcall getRollcallById(long chatId, int rollcallId) {
@@ -321,22 +353,24 @@ public class Bot {
 
     public void addRollcall(Chat chat, Rollcall rollcall) {
         chat.rollcalls.add(rollcall);
-        ConfigurationSection rollcallsSection = chat.config.getConfigurationSection("rollcalls");
-        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".tagAllMessageId", rollcall.tagAllMessageId);
-        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".resultChatId", rollcall.resultChatId);
-        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".resultMessageId", rollcall.resultMessageId);
-        rollcallsSection.set("rollcalls." + rollcall.rollcallMessageId + ".text", rollcall.text);
+        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".threadId", rollcall.threadId);
+        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".tagAllMessageId", rollcall.tagAllMessageId);
+        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultChatId", rollcall.resultChatId);
+        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultMessageId", rollcall.resultMessageId);
+        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".text", rollcall.text);
 
-        ConfigurationSection entriesSection = rollcallsSection.getConfigurationSection("entries");
         for (RollcallEntry entry : rollcall.entries) {
-            entriesSection.set("entries." + entry.student.userId + ".answer", entry.answer.name());
-            entriesSection.set("entries." + entry.student.userId + ".times", entry.times);
+            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", entry.answer.name());
+            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
         }
+        try {
+            chat.config.save();
+        } catch (IOException ignored) {}
     }
 
     public void removeRollcall(Chat chat, Rollcall rollcall) {
         chat.rollcalls.remove(rollcall);
-        chat.config.getConfigurationSection("rollcalls").set("rollcalls." + rollcall.rollcallMessageId, null);
+        setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
     }
 
     public boolean isAdmin(Update update) {
@@ -345,7 +379,11 @@ public class Bot {
         return telegramBot.getChatAdministrators(update.getMessage().getChatId()).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
     }
 
-    private InlineKeyboardMarkup getAdmin() {
+    private void sendError(long chatId, int threadId, String error) {
+        telegramBot.sendMessageInline(chatId, threadId, getDevLink(), error + "\nУверен, что  сделал всё правильно? Если да:\n");
+    }
+
+    private InlineKeyboardMarkup getDevLink() {
         return InlineKeyboardMarkup.builder()
                 .keyboardRow(
                         new InlineKeyboardRow(InlineKeyboardButton
@@ -362,7 +400,7 @@ public class Bot {
         return InlineKeyboardMarkup.builder()
                 .keyboardRow(new InlineKeyboardRow(getInlineButton("✅ На паре (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
                 .keyboardRow(new InlineKeyboardRow(getInlineButton("\uD83E\uDD12 По ув. причине (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("❌ Прогуливаю (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + "nothere")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton("❌ Прогуливаю (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + " nothere")))
                 .build();
     }
 

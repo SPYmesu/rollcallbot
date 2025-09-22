@@ -4,6 +4,7 @@ dependency-reduced-pom.xml
 /target
 /target/classes/META-INF/MANIFEST.MF
 /out
+/storage
 /.idea/*
 !/.idea/runConfigurations/
 !/.idea/codeStyles/

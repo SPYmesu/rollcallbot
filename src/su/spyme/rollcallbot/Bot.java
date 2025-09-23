@@ -101,7 +101,7 @@ public class Bot {
                     entry.answer = answer;
                     rollcall.entries.add(entry);
                     setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", answer.name());
-                    answerInline(update, "Красотка! Ты самая лучшая! Выбор сохранен.");
+                    answerInline(update, "Спасибо за участие, уже передали ответ старосте.");
                 }
                 default -> {
                     answerInline(update, "Эта перекличка уже неактивна");
@@ -114,7 +114,7 @@ public class Bot {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
             long chatId = update.getMessage().getChatId();
-            int threadId = update.getMessage().isSuperGroupMessage() ? 0 : update.getMessage().getMessageThreadId();
+            int threadId = update.getMessage().isSuperGroupMessage() ? update.getMessage().getMessageThreadId() : 0;
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;

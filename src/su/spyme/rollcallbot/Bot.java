@@ -102,7 +102,7 @@ public class Bot {
                     entry.answer = answer;
                     rollcall.entries.add(entry);
                     setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", answer.name());
-                    answerInline(update, "Красотка! Ты самая лучшая! Выбор сохранен.");
+                    answerInline(update, "Спасибо за участие, уже передали ответ старосте.");
                 }
                 default -> {
                     answerInline(update, "Эта перекличка уже неактивна");
@@ -115,16 +115,16 @@ public class Bot {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
             long chatId = update.getMessage().getChatId();
-            int threadId = update.getMessage().isSuperGroupMessage() ? 0 : update.getMessage().getMessageThreadId();
+            int threadId = update.getMessage().isSuperGroupMessage() ? update.getMessage().getMessageThreadId() : 0;
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;
             switch (args[0]) {
-                case ".позвать", ".все" -> {
+                case "/all", ".позвать", ".все" -> {
                     if (!isAdmin(update)) return;
                     telegramBot.sendMessage(chatId, threadId, tag(students));
                 }
-                case ".перекличка", ".п" -> {
+                case "/rollcall", ".перекличка", ".п" -> {
                     if (!isAdmin(update)) return;
                     if (getRollcallByThread(chat, threadId) != null) {
                         telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
@@ -147,7 +147,7 @@ public class Bot {
                     rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall, students)).getMessageId());
                     addRollcall(chat, rollcall);
                 }
-                case ".перекличкавсё", ".пв" -> {
+                case "/rollcallstop", ".перекличкавсё", ".пв" -> {
                     if (!isAdmin(update)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall == null) {
@@ -168,7 +168,7 @@ public class Bot {
                         text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
                     telegramBot.sendMessage(chatId, threadId, text.toString());
                 }
-                case ".студент", ".с" -> {
+                case "/student", ".студент", ".с" -> {
                     if (!isAdmin(update)) return;
                     if (update.getMessage().getReplyToMessage() != null) {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
@@ -186,7 +186,7 @@ public class Bot {
                         sendError(chatId, threadId, "Message.getForwardFrom() == null;");
                     }
                 }
-                case ".игнор" -> {
+                case "/ignore", ".игнор" -> {
                     if (!isAdmin(update)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
@@ -195,22 +195,26 @@ public class Bot {
                         Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramBot.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
                     }
                 }
-                case ".помощь" -> {
-                    if (!isAdmin(update)) return;
+                case "/help", ".помощь" -> {
+                    if (!update.getMessage().isUserMessage() && !isAdmin(update)) return;
                     telegramBot.sendMessage(chatId, threadId, """
                             Помощь по командам:
                             
                             .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
                             *Так же эта команда автоматически выполняет следующую*
                             
-                            .позвать (.все) - упоминает всех студентов в сообщении
+                            .позвать (.все) - упоминает всех добавленных студентов
                             
-                            .игнор - упоминает только тех, кто ещё не нажимал в перекличке
+                            .игнор - упоминает только тех, кто ещё не участвовал в перекличке
                             *Сообщение само удалится через 120 секунд*
                             
                             .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
                             
                             .студент (.с) `<Фамилия Имя>` - добавляет студента с указанными данными
+                            
+                            Сообщить об ошибке: https://github.com/SPY_mesu/rollcallbot/issues
+                            Исходный код: https://github.com/SPY_mesu/rollcallbot
+                            Поддержать разработчика: https://boosty.to/SPY_me/about
                             """);
                 }
             }

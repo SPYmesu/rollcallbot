@@ -13,6 +13,7 @@ import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.Executors;
@@ -109,7 +110,7 @@ public class Bot {
                 }
             }
             telegramBot.editMessageReplyMarkup(chatId, messageId, getWhoHere(rollcall));
-            telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall));
+            telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, getChat(chatId).students));
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
@@ -143,7 +144,7 @@ public class Bot {
                     rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
                     telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getWhoHere(rollcall));
                     rollcall.setResultChatId(userId);
-                    rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall)).getMessageId());
+                    rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall, students)).getMessageId());
                     addRollcall(chat, rollcall);
                 }
                 case ".перекличкавсё", ".пв" -> {
@@ -242,10 +243,13 @@ public class Bot {
         } catch (IOException ignored) {}
     }
 
-    private String getRollcallResult(Rollcall rollcall) {
+    private String getRollcallResult(Rollcall rollcall, List<Student> sortExample) {
         List<Student> here = rollcall.getStudents(RollcallAnswer.HERE);
+        here.sort(Comparator.comparingInt(sortExample::indexOf));
         List<Student> notHere = rollcall.getStudents(RollcallAnswer.NOTHERE);
+        notHere.sort(Comparator.comparingInt(sortExample::indexOf));
         List<Student> notHereReason = rollcall.getStudents(RollcallAnswer.NOTHEREREASON);
+        notHereReason.sort(Comparator.comparingInt(sortExample::indexOf));
         List<Student> ignore = rollcall.getStudents(RollcallAnswer.IGNORE);
         StringBuilder builder = new StringBuilder("Результат переклички. `#" + rollcall.rollcallMessageId + "`");
         builder.append("\n\n");
@@ -384,7 +388,7 @@ public class Bot {
     }
 
     private void sendError(long chatId, int threadId, String error) {
-        telegramBot.sendMessageInline(chatId, threadId, getDevLink(), error + "\nУверен, что  сделал всё правильно? Если да:\n");
+        telegramBot.sendMessageInline(chatId, threadId, getDevLink(), error + "\nУверен, что сделал всё правильно? Если да:\n");
     }
 
     private InlineKeyboardMarkup getDevLink() {

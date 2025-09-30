@@ -39,7 +39,7 @@ public class TelegramBot implements LongPollingSingleThreadUpdateConsumer {
     }
 
     public String getBotToken(){
-        return System.getenv("token");
+        return System.getenv("rollcall_bot_token");
     }
 
     public Message sendMessage(long chatId, int messageThreadId, String text){

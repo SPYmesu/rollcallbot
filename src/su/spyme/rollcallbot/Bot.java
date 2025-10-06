@@ -106,7 +106,7 @@ public class Bot {
                 }
                 default -> {
                     answerInline(update, "Эта перекличка уже неактивна");
-                    return;
+                    throw new RuntimeException("Unhandled callback query " + callData);
                 }
             }
             telegramBot.editMessageReplyMarkup(chatId, messageId, getWhoHere(rollcall));
@@ -115,7 +115,7 @@ public class Bot {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
             long chatId = update.getMessage().getChatId();
-            int threadId = update.getMessage().isSuperGroupMessage() ? update.getMessage().getMessageThreadId() : 0;
+            int threadId = (update.getMessage().getChat().getIsForum() != null && update.getMessage().getChat().getIsForum() && update.getMessage().getMessageThreadId() != null) ? update.getMessage().getMessageThreadId() : 0;
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;
@@ -286,7 +286,7 @@ public class Bot {
         AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
                 .callbackQueryId(update.getCallbackQuery().getId())
                 .text(text)
-                .showAlert(true)
+                .showAlert(false)
                 .build();
         telegramBot.telegramClient.execute(answerCallbackQuery);
     }

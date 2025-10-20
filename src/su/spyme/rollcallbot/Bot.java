@@ -125,27 +125,31 @@ public class Bot {
                     telegramBot.sendMessage(chatId, threadId, tag(students));
                 }
                 case "/rollcall", ".перекличка", ".п" -> {
-                    if (!isAdmin(update)) return;
-                    if (getRollcallByThread(chat, threadId) != null) {
-                        telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
-                        return;
+                    try {
+                        if (!isAdmin(update)) return;
+                        if (getRollcallByThread(chat, threadId) != null) {
+                            telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
+                            return;
+                        }
+                        String text = "Перекличка на наличие на паре!!!";
+                        if (args.length > 1) {
+                            text = getArguments(1, args);
+                        }
+                        List<RollcallEntry> entries = new ArrayList<>();
+                        for (Student student : students) {
+                            entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
+                        }
+                        Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
+                        telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
+                        rollcall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
+                        rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
+                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getWhoHere(rollcall));
+                        rollcall.setResultChatId(userId);
+                        rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall, students)).getMessageId());
+                        addRollcall(chat, rollcall);
+                    } catch (Exception exception) {
+                        telegramBot.sendMessage(chatId, threadId, "Настя, ну опять ты что-то сделала не так: " + exception.getMessage());
                     }
-                    String text = "Перекличка на наличие на паре!!!";
-                    if (args.length > 1) {
-                        text = getArguments(1, args);
-                    }
-                    List<RollcallEntry> entries = new ArrayList<>();
-                    for (Student student : students) {
-                        entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
-                    }
-                    Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
-                    telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                    rollcall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
-                    rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
-                    telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getWhoHere(rollcall));
-                    rollcall.setResultChatId(userId);
-                    rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall, students)).getMessageId());
-                    addRollcall(chat, rollcall);
                 }
                 case "/rollcallstop", ".перекличкавсё", ".пв" -> {
                     if (!isAdmin(update)) return;

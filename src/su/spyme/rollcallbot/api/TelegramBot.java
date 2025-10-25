@@ -20,19 +20,19 @@ import java.util.List;
 
 public class TelegramBot implements LongPollingSingleThreadUpdateConsumer {
 
-    public Bot spymeBot;
+    public Bot bot;
     public TelegramClient telegramClient;
 
     public void start(){
         telegramClient = new OkHttpTelegramClient(getBotToken());
-        spymeBot = new Bot();
-        spymeBot.start(this);
+        bot = new Bot();
+        bot.start(this);
     }
 
     @Override
     public void consume(Update update) {
         try {
-            spymeBot.onUpdateReceived(update);
+            bot.onUpdateReceived(update);
         } catch (Exception e) {
             e.printStackTrace();
         }

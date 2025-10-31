@@ -78,7 +78,13 @@ public class Bot {
                             entries
                     ));
                 }
-                chats.add(new Chat(Long.parseLong(chatId), chatConfig, chatStudents, chatRollcalls));
+                ChatSettings settings = new ChatSettings(
+                        chatConfig.getInt("settings.timer"),
+                        chatConfig.getString("settings.message"),
+                        chatConfig.getStringList("settings.buttonNames"),
+                        chatConfig.getBoolean("settings.birthdays")
+                );
+                chats.add(new Chat(Long.parseLong(chatId), chatConfig, settings, chatStudents, chatRollcalls));
             }
 
             LocalDateTime now = LocalDateTime.now();
@@ -373,21 +379,30 @@ public class Bot {
         if (chat == null) {
             try {
                 YamlFile chatConfig = loadConfig(String.valueOf(chatId));
-                chat = new Chat(chatId, chatConfig, new ArrayList<>(), new ArrayList<>());
+                chat = new Chat(chatId, chatConfig, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new ArrayList<>());
                 chats.add(chat);
-                save();
+                saveChat(chat);
             } catch (IOException ignored) {
             }
         }
         return chat;
     }
 
-    public void save() throws IOException {
-        List<String> chatIds = new ArrayList<>();
-        for (Chat chat : chats) {
-            chatIds.add(String.valueOf(chat.chatId));
+    public void saveChat(Chat chat) throws IOException {
+        if (!chats.contains(chat)) {
+            chats.add(chat);
+            saveChats();
         }
-        yamlFile.set("chats", chatIds);
+        YamlFile config = chat.config;
+        config.set("settings.timer", chat.settings.timer);
+        config.set("settings.message", chat.settings.message);
+        config.set("settings.buttonNames", chat.settings.buttonNames);
+        config.set("settings.birthdays", chat.settings.birthdays);
+        config.save();
+    }
+
+    public void saveChats() throws IOException {
+        yamlFile.set("chats", chats.stream().map(it -> it.chatId).toList());
         yamlFile.save();
     }
 
@@ -434,7 +449,8 @@ public class Bot {
                 for (Student student : chat.students) {
                     String s = chatConfig.getString("birthdays." + student.userId);
                     LocalDate lastBirthday;
-                    if (s == null) lastBirthday = null; else lastBirthday = LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
+                    if (s == null) lastBirthday = null;
+                    else lastBirthday = LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
                     if (isBirthdayToday(student, today) && lastBirthday != today) {
                         String message = "🎉 С днем рождения, " + format(student) + "! 🎂";
                         telegramBot.sendMessage(chat.chatId, 0, message);

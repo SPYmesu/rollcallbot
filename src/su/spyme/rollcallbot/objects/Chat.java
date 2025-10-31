@@ -13,6 +13,7 @@ import java.util.List;
 public class Chat {
     public long chatId;
     public YamlFile config;
+    public ChatSettings settings;
     public List<Student> students;
     public List<Rollcall> rollcalls;
 }

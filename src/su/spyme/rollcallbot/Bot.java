@@ -80,12 +80,15 @@ public class Bot {
                     ));
                 }
                 ChatSettings settings = new ChatSettings(
-                        chatConfig.getInt("settings.timer"),
-                        chatConfig.getString("settings.message"),
+                        chatConfig.getInt("settings.timer", 60),
+                        chatConfig.getString("settings.message", "\uD83D\uDE4B Перекличка на наличие на паре"),
                         chatConfig.getStringList("settings.buttonNames"),
-                        chatConfig.getBoolean("settings.birthdays")
+                        chatConfig.getBoolean("settings.birthdays", true)
                 );
-                chats.add(new Chat(Long.parseLong(chatId), chatConfig, settings, chatStudents, chatRollcalls));
+                if (settings.buttonNames.isEmpty()) settings.buttonNames = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
+                Chat chat = new Chat(Long.parseLong(chatId), chatConfig, settings, chatStudents, chatRollcalls);
+                chats.add(chat);
+                saveChat(chat);
             }
 
             LocalDateTime now = LocalDateTime.now();
@@ -142,7 +145,7 @@ public class Bot {
                     throw new RuntimeException("Unhandled callback query " + callData);
                 }
             }
-            telegramBot.editMessageReplyMarkup(chatId, messageId, getRollcallInline(rollcall));
+            telegramBot.editMessageReplyMarkup(chatId, messageId, getRollcallInline(getChat(chatId), rollcall));
             telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, getChat(chatId).students));
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String body = update.getMessage().getText();
@@ -168,7 +171,7 @@ public class Bot {
                             telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
                             return;
                         }
-                        String text = "Перекличка на наличие на паре!!!";
+                        String text = chat.settings.message;
                         if (args.length > 1) {
                             text = getArguments(1, args);
                         }
@@ -191,13 +194,13 @@ public class Bot {
                             return;
                         }
                         rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
-                        Message rollcallMessage = telegramBot.sendMessageInline(chatId, threadId, getRollcallInline(rollcall), rollcall.text);
+                        Message rollcallMessage = telegramBot.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcall.text);
                         if (rollcallMessage == null) {
                             sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
                             return;
                         }
                         rollcall.setRollcallMessageId(rollcallMessage.getMessageId());
-                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(rollcall));
+                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(chat, rollcall));
                         addRollcall(chat, rollcall);
                     } catch (Exception exception) {
                         sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" +  exception.getMessage());
@@ -465,6 +468,7 @@ public class Bot {
         LocalDate today = LocalDate.now();
         try {
             for (Chat chat : chats) {
+                if (!chat.settings.birthdays) continue;
                 YamlFile chatConfig = loadConfig(String.valueOf(chat.chatId));
                 for (Student student : chat.students) {
                     String s = chatConfig.getString("birthdays." + student.userId);
@@ -518,11 +522,12 @@ public class Bot {
                 .build();
     }
 
-    private InlineKeyboardMarkup getRollcallInline(Rollcall rollcall) {
+    private InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {
+        List<String> buttons = chat.settings.buttonNames;
         return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("✅ На паре (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("\uD83E\uDD12 По ув. причине (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton("❌ Прогуливаю (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + " nothere")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(0) + " (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(1) + " (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(2) + " (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + " nothere")))
                 .build();
     }
 
@@ -531,7 +536,6 @@ public class Bot {
                 .builder()
                 .text(text)
                 .callbackData(callback)
-                .switchInlineQueryCurrentChat(callback)
                 .switchInlineQueryCurrentChat(callback)
                 .build();
     }

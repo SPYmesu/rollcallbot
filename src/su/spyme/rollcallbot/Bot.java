@@ -4,6 +4,7 @@ import org.simpleyaml.configuration.file.YamlFile;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
@@ -141,7 +142,7 @@ public class Bot {
                     throw new RuntimeException("Unhandled callback query " + callData);
                 }
             }
-            telegramBot.editMessageReplyMarkup(chatId, messageId, getWhoHere(rollcall));
+            telegramBot.editMessageReplyMarkup(chatId, messageId, getRollcallInline(rollcall));
             telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, getChat(chatId).students));
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String body = update.getMessage().getText();
@@ -151,7 +152,11 @@ public class Bot {
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;
-            switch (args[0]) {
+            String command = args[0];
+            if (command.contains("@")) {
+                command = command.substring(0, command.indexOf('@'));
+            }
+            switch (command) {
                 case "/all", ".позвать", ".все" -> {
                     if (!isAdmin(update)) return;
                     telegramBot.sendMessage(chatId, threadId, tag(students));
@@ -172,15 +177,30 @@ public class Bot {
                             entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
                         }
                         Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
-                        telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                        rollcall.setTagAllMessageId(telegramBot.sendMessage(chatId, threadId, tag(students)).getMessageId());
-                        rollcall.setRollcallMessageId(telegramBot.sendMessageInline(chatId, threadId, getWhoHere(rollcall), rollcall.text).getMessageId());
-                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getWhoHere(rollcall));
                         rollcall.setResultChatId(userId);
-                        rollcall.setResultMessageId(telegramBot.sendMessage(userId, threadId, getRollcallResult(rollcall, students)).getMessageId());
+                        Message resultMessage = telegramBot.sendMessage(userId, 0, getRollcallResult(rollcall, students));
+                        if (resultMessage == null) {
+                            telegramBot.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, провертье, может ли бот вам писать в личные сообщения.");
+                            return;
+                        }
+                        rollcall.setResultMessageId(resultMessage.getMessageId());
+                        telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
+                        Message tagAllMessage = telegramBot.sendMessage(chatId, threadId, tag(students));
+                        if (tagAllMessage == null) {
+                            sendError(chatId, threadId, "❌ Не удалось отправить сообщение с упоминанием студентов");
+                            return;
+                        }
+                        rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
+                        Message rollcallMessage = telegramBot.sendMessageInline(chatId, threadId, getRollcallInline(rollcall), rollcall.text);
+                        if (rollcallMessage == null) {
+                            sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
+                            return;
+                        }
+                        rollcall.setRollcallMessageId(rollcallMessage.getMessageId());
+                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(rollcall));
                         addRollcall(chat, rollcall);
                     } catch (Exception exception) {
-                        telegramBot.sendMessage(chatId, threadId, "Настя, ну опять ты что-то сделала не так:\n" + exception.getMessage());
+                        sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" +  exception.getMessage());
                     }
                 }
                 case "/rollcallstop", ".перекличкавсё", ".пв" -> {
@@ -256,9 +276,9 @@ public class Bot {
                             
                             .студент (.с) `<Дата рожения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
                             
-                            Сообщить об ошибке: https://github.com/SPY_mesu/rollcallbot/issues
-                            Исходный код: https://github.com/SPY_mesu/rollcallbot
-                            Поддержать разработчика: https://boosty.to/SPY_me/about
+                            Сообщить об ошибке: https://github.com/SPY\\_mesu/rollcallbot/issues
+                            Исходный код: https://github.com/SPY\\_mesu/rollcallbot
+                            Поддержать разработчика: https://boosty.to/SPY\\_me/about
                             """);
                 }
             }
@@ -498,7 +518,7 @@ public class Bot {
                 .build();
     }
 
-    private InlineKeyboardMarkup getWhoHere(Rollcall rollcall) {
+    private InlineKeyboardMarkup getRollcallInline(Rollcall rollcall) {
         return InlineKeyboardMarkup.builder()
                 .keyboardRow(new InlineKeyboardRow(getInlineButton("✅ На паре (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
                 .keyboardRow(new InlineKeyboardRow(getInlineButton("\uD83E\uDD12 По ув. причине (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))

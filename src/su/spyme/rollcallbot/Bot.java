@@ -155,16 +155,16 @@ public class Bot {
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;
-            String command = args[0];
+            String command = args[0].toLowerCase().replaceFirst("/", "").replaceFirst(".", "");
             if (command.contains("@")) {
                 command = command.substring(0, command.indexOf('@'));
             }
             switch (command) {
-                case "/all", ".позвать", ".все" -> {
+                case "all", "позвать", "все" -> {
                     if (!isAdmin(update)) return;
                     telegramBot.sendMessage(chatId, threadId, tag(students));
                 }
-                case "/rollcall", ".перекличка", ".п" -> {
+                case "rollcall", "перекличка", "п" -> {
                     try {
                         if (!isAdmin(update)) return;
                         if (getRollcallByThread(chat, threadId) != null) {
@@ -206,7 +206,7 @@ public class Bot {
                         sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" +  exception.getMessage());
                     }
                 }
-                case "/rollcallstop", ".перекличкавсё", ".пв" -> {
+                case "rollcallstop", "перекличкавсё", "пв" -> {
                     if (!isAdmin(update)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall == null) {
@@ -227,7 +227,7 @@ public class Bot {
                         text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
                     telegramBot.sendMessage(chatId, threadId, text.toString());
                 }
-                case "/student", ".студент", ".с" -> {
+                case "student", "студент", "с" -> {
                     if (!isAdmin(update)) return;
                     if (update.getMessage().getReplyToMessage() != null) {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
@@ -253,7 +253,7 @@ public class Bot {
                         sendError(chatId, threadId, "Message.getForwardFrom() == null;");
                     }
                 }
-                case "/ignore", ".игнор" -> {
+                case "ignore", "игнор" -> {
                     if (!isAdmin(update)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
@@ -262,7 +262,7 @@ public class Bot {
                         Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramBot.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
                     }
                 }
-                case "/help", ".помощь" -> {
+                case "help", "помощь" -> {
                     if (!update.getMessage().isUserMessage() && !isAdmin(update)) return;
                     telegramBot.sendMessage(chatId, threadId, """
                             Помощь по командам:

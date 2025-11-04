@@ -6,21 +6,27 @@
     <groupId>su.spyme</groupId>
     <artifactId>RollcallBot</artifactId>
     <version>1.0</version>
+    <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>21</java.version>
+
+        <telegrambots.version>9.1.0</telegrambots.version>
+        <log4j2.version>2.23.1</log4j2.version>
+        <lombok.version>1.18.34</lombok.version>
+        <slf4j.version>2.0.12</slf4j.version>
+
         <project.mainClass>su.spyme.rollcallbot.Main</project.mainClass>
     </properties>
 
     <repositories>
         <repository>
-            <id>jitpack.io</id>
+            <id>jitpack</id>
             <url>https://jitpack.io</url>
-        </repository>
-        <repository>
-            <id>maven_central</id>
-            <name>Maven Central</name>
-            <url>https://repo.maven.apache.org/maven2/</url>
         </repository>
     </repositories>
 
@@ -28,98 +34,33 @@
         <dependency>
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots-longpolling</artifactId>
-            <version>9.1.0</version>
+            <version>${telegrambots.version}</version>
         </dependency>
         <dependency>
             <groupId>org.telegram</groupId>
             <artifactId>telegrambots-client</artifactId>
-            <version>9.1.0</version>
+            <version>${telegrambots.version}</version>
         </dependency>
         <dependency>
             <groupId>me.carleslc.Simple-YAML</groupId>
             <artifactId>Simple-Yaml</artifactId>
-            <version>1.8.3</version>
+            <version>1.8.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>${log4j2.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.36</version>
+            <version>${lombok.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
-
-    <profiles>
-        <profile>
-            <id>deploy</id>
-            <properties>
-                <app.serversHome>${project.basedir}/../target/</app.serversHome>
-                <app.serverDir/>
-                <app.artifactName>${project.artifactId}</app.artifactName>
-            </properties>
-        </profile>
-        <profile>
-            <id>local</id>
-            <properties>
-                <app.serversHome>${project.basedir}/../TestServers/</app.serversHome>
-                <app.serverDir>LocalBuild</app.serverDir>
-                <app.artifactName>${project.artifactId}</app.artifactName>
-            </properties>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-    </profiles>
-
-    <build>
-        <sourceDirectory>src</sourceDirectory>
-        <defaultGoal>clean package install</defaultGoal>
-        <directory>${project.basedir}/target</directory>
-        <finalName>${app.artifactName}</finalName>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>**/*</include>
-                </includes>
-            </resource>
-        </resources>
-
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.1</version>
-                <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>su.spyme.rollcallbot.Main</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 </project>

@@ -1,6 +1,9 @@
 package su.spyme.rollcallbot;
 
 import org.simpleyaml.configuration.file.YamlFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
@@ -9,106 +12,30 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import su.spyme.rollcallbot.api.TelegramBot;
 import su.spyme.rollcallbot.objects.*;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class Bot {
+import static su.spyme.rollcallbot.Main.*;
+import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
+import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
+import static su.spyme.rollcallbot.utils.MyUtils.*;
+import static su.spyme.rollcallbot.utils.StringUtils.*;
 
-    public TelegramBot telegramBot = new TelegramBot();
-    public YamlFile yamlFile;
-    public List<Chat> chats;
+public class Bot implements LongPollingSingleThreadUpdateConsumer {
+    private static final Logger logger = LoggerFactory.getLogger(Bot.class);
 
-    public void start(TelegramBot telegramBot) {
-        try {
-            this.telegramBot = telegramBot;
-
-            yamlFile = loadConfig("config");
-
-            List<String> chatsList = yamlFile.getStringList("chats");
-            chats = new ArrayList<>();
-            for (String chatId : chatsList) {
-                YamlFile chatConfig = loadConfig(chatId);
-                List<Student> chatStudents = new ArrayList<>();
-                boolean updated = false;
-                for (String key : getKeys(chatConfig, "students")) {
-                    Student student;
-                    if (chatConfig.get("students." + key + ".name") != null) {
-                        student = new Student(
-                                Long.parseLong(key),
-                                chatConfig.getString("students." + key + ".name"),
-                                new SimpleDateFormat("dd.MM.yyyy").parse(chatConfig.getString("students." + key + ".birthdate", "01.01.1970")).toInstant()
-                        );
-                    } else {
-                        student = new Student(Long.parseLong(key), chatConfig.getString("students." + key), Instant.EPOCH);
-                        chatConfig.set("students." + key + ".name", student.name);
-                        chatConfig.set("students." + key + ".birthdate", instantToString(Instant.EPOCH));
-                        updated = true;
-                    }
-                    chatStudents.add(student);
-                }
-                if (updated) chatConfig.save();
-                List<Rollcall> chatRollcalls = new ArrayList<>();
-                for (String key : getKeys(chatConfig, "rollcalls")) {
-                    List<RollcallEntry> entries = new ArrayList<>();
-                    for (String entryKey : getKeys(chatConfig, "rollcalls." + key + ".entries")) {
-                        entries.add(new RollcallEntry(
-                                getStudent(chatStudents, Long.parseLong(entryKey)),
-                                RollcallAnswer.valueOf(chatConfig.getString("rollcalls." + key + ".entries." + entryKey + ".answer")),
-                                chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times")
-                        ));
-                    }
-                    chatRollcalls.add(new Rollcall(
-                            Long.parseLong(chatId),
-                            chatConfig.getInt("rollcalls." + key + ".threadId"),
-                            Integer.parseInt(key),
-                            chatConfig.getInt("rollcalls." + key + ".tagAllMessageId"),
-                            chatConfig.getLong("rollcalls." + key + ".resultChatId"),
-                            chatConfig.getInt("rollcalls." + key + ".resultMessageId"),
-                            chatConfig.getString("rollcalls." + key + ".text"),
-                            entries
-                    ));
-                }
-                ChatSettings settings = new ChatSettings(
-                        chatConfig.getInt("settings.timer", 60),
-                        chatConfig.getString("settings.message", "\uD83D\uDE4B Перекличка на наличие на паре"),
-                        chatConfig.getStringList("settings.buttonNames"),
-                        chatConfig.getBoolean("settings.birthdays", true)
-                );
-                if (settings.buttonNames.isEmpty()) settings.buttonNames = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
-                Chat chat = new Chat(Long.parseLong(chatId), chatConfig, settings, chatStudents, chatRollcalls);
-                chats.add(chat);
-                saveChat(chat);
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);
-            if (now.isAfter(nextRun)) {
-                nextRun = nextRun.plusDays(1);
-            }
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::checkBirthdays,
-                    Duration.between(now, nextRun).toMillis(),
-                    24 * 60 * 60 * 1000,
-                    TimeUnit.MILLISECONDS);
-
-            if (new Scanner(System.in).next().equals("stop")) System.exit(-1);
-        } catch (Exception exception) {
-            System.out.println("Error while loading...");
-            throw new RuntimeException(exception);
-        }
-    }
-
-    public void onUpdateReceived(Update update) throws TelegramApiException, IOException {
+    @Override
+    public void consume(Update update) {
         if (update.hasCallbackQuery()) {
             String callData = update.getCallbackQuery().getData();
             String[] callDataArray = callData.split(" ");
@@ -142,11 +69,11 @@ public class Bot {
                 }
                 default -> {
                     answerInline(update, "Эта перекличка уже неактивна");
-                    throw new RuntimeException("Unhandled callback query " + callData);
+                    logger.warn("Unhandled callback query {}", callData);
                 }
             }
-            telegramBot.editMessageReplyMarkup(chatId, messageId, getRollcallInline(getChat(chatId), rollcall));
-            telegramBot.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, getChat(chatId).students));
+            telegramAPI.editMessageReplyMarkup(chatId, messageId, getRollcallInline(getChat(chatId), rollcall));
+            telegramAPI.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, getChat(chatId).students));
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String body = update.getMessage().getText();
             String[] args = body.split(" ");
@@ -162,13 +89,13 @@ public class Bot {
             switch (command) {
                 case "all", "позвать", "все" -> {
                     if (!isAdmin(update)) return;
-                    telegramBot.sendMessage(chatId, threadId, tag(students));
+                    telegramAPI.sendMessage(chatId, threadId, tag(students));
                 }
                 case "rollcall", "перекличка", "п" -> {
                     try {
                         if (!isAdmin(update)) return;
                         if (getRollcallByThread(chat, threadId) != null) {
-                            telegramBot.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
+                            telegramAPI.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
                             return;
                         }
                         String text = chat.settings.message;
@@ -181,29 +108,29 @@ public class Bot {
                         }
                         Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
                         rollcall.setResultChatId(userId);
-                        Message resultMessage = telegramBot.sendMessage(userId, 0, getRollcallResult(rollcall, students));
+                        Message resultMessage = telegramAPI.sendMessage(userId, 0, getRollcallResult(rollcall, students));
                         if (resultMessage == null) {
-                            telegramBot.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, провертье, может ли бот вам писать в личные сообщения.");
+                            telegramAPI.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, провертье, может ли бот вам писать в личные сообщения.");
                             return;
                         }
                         rollcall.setResultMessageId(resultMessage.getMessageId());
-                        telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                        Message tagAllMessage = telegramBot.sendMessage(chatId, threadId, tag(students));
+                        telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
+                        Message tagAllMessage = telegramAPI.sendMessage(chatId, threadId, tag(students));
                         if (tagAllMessage == null) {
                             sendError(chatId, threadId, "❌ Не удалось отправить сообщение с упоминанием студентов");
                             return;
                         }
                         rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
-                        Message rollcallMessage = telegramBot.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcall.text);
+                        Message rollcallMessage = telegramAPI.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcall.text);
                         if (rollcallMessage == null) {
                             sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
                             return;
                         }
                         rollcall.setRollcallMessageId(rollcallMessage.getMessageId());
-                        telegramBot.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(chat, rollcall));
+                        telegramAPI.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(chat, rollcall));
                         addRollcall(chat, rollcall);
                     } catch (Exception exception) {
-                        sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" +  exception.getMessage());
+                        sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" + exception.getMessage());
                     }
                 }
                 case "rollcallstop", "перекличкавсё", "пв" -> {
@@ -213,9 +140,9 @@ public class Bot {
                         sendError(chatId, threadId, "recall == null;");
                         return;
                     }
-                    telegramBot.deleteMessage(chatId, rollcall.rollcallMessageId);
-                    telegramBot.deleteMessage(chatId, rollcall.tagAllMessageId);
-                    telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
+                    telegramAPI.deleteMessage(chatId, rollcall.rollcallMessageId);
+                    telegramAPI.deleteMessage(chatId, rollcall.tagAllMessageId);
+                    telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
                     removeRollcall(chat, rollcall);
                     StringBuilder text = new StringBuilder("Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
 
@@ -225,7 +152,7 @@ public class Bot {
                     }
                     if (best.times > 5)
                         text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
-                    telegramBot.sendMessage(chatId, threadId, text.toString());
+                    telegramAPI.sendMessage(chatId, threadId, text.toString());
                 }
                 case "student", "студент", "с" -> {
                     if (!isAdmin(update)) return;
@@ -236,19 +163,23 @@ public class Bot {
                         try {
                             instant = new SimpleDateFormat("dd.MM.yyyy").parse(args[1]).toInstant();
                         } catch (Exception ignored) {
-                            telegramBot.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
+                            telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
                         }
                         if (targetName.split(" ").length < 2 || instant == null) {
-                            telegramBot.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
+                            telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
                             return;
                         }
 
-                        Student student = new Student(targetId, targetName, instant);
-                        chat.config.set("students." + targetId + ".name", student.name);
-                        chat.config.set("students." + targetId + ".birthdate", instantToString(student.birthdate));
-                        chat.config.save();
-                        students.add(student);
-                        telegramBot.sendMessage(chatId, threadId, "Студент добавлен: " + targetName + " (" + targetId + ").");
+                        try {
+                            Student student = new Student(targetId, targetName, instant);
+                            chat.config.set("students." + targetId + ".name", student.name);
+                            chat.config.set("students." + targetId + ".birthdate", instantToString(student.birthdate));
+                            chat.config.save();
+                            students.add(student);
+                            telegramAPI.sendMessage(chatId, threadId, "Студент добавлен: " + targetName + " (" + targetId + ").");
+                        } catch (Exception exception) {
+                            telegramAPI.sendMessage(chatId, threadId, "❌ При выполнении команды произошла ошибка: " + exception.getMessage());
+                        }
                     } else {
                         sendError(chatId, threadId, "Message.getForwardFrom() == null;");
                     }
@@ -257,14 +188,14 @@ public class Bot {
                     if (!isAdmin(update)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
-                        telegramBot.deleteMessage(chatId, update.getMessage().getMessageId());
-                        int ignoreMessageId = telegramBot.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\nНе забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
-                        Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramBot.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
+                        telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
+                        int ignoreMessageId = telegramAPI.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\nНе забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
+                        Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramAPI.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
                     }
                 }
                 case "help", "помощь" -> {
                     if (!update.getMessage().isUserMessage() && !isAdmin(update)) return;
-                    telegramBot.sendMessage(chatId, threadId, """
+                    telegramAPI.sendMessage(chatId, threadId, """
                             Помощь по командам:
                             
                             .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
@@ -284,34 +215,8 @@ public class Bot {
                             Поддержать разработчика: https://boosty.to/SPY\\_me/about
                             """);
                 }
+                default -> logger.warn("Unhandled command: {}", command);
             }
-        }
-    }
-
-    public YamlFile loadConfig(String name) throws IOException {
-        YamlFile yamlFile = new YamlFile("storage/" + name + ".yml");
-        if (!yamlFile.exists()) yamlFile.createNewFile();
-        else yamlFile.load();
-        return yamlFile;
-    }
-
-    public List<String> getKeys(YamlFile config, String section) {
-        createSectionIfNotExist(config, section);
-        return config.getConfigurationSection(section).getKeys(false).stream().toList();
-    }
-
-    public void createSectionIfNotExist(YamlFile config, String path) {
-        if (!config.contains(path)) {
-            setAndSave(config, path + ".temp", 10);
-            setAndSave(config, path + ".temp", null);
-        }
-    }
-
-    public void setAndSave(YamlFile config, String path, Object value) {
-        config.set(path, value);
-        try {
-            config.save();
-        } catch (IOException ignored) {
         }
     }
 
@@ -350,121 +255,19 @@ public class Bot {
         return builder.toString();
     }
 
-    private void answerInline(Update update, String text) throws TelegramApiException {
-        AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
-                .callbackQueryId(update.getCallbackQuery().getId())
-                .text(text)
-                .showAlert(false)
-                .build();
-        telegramBot.telegramClient.execute(answerCallbackQuery);
-    }
-
-    private String tag(List<Student> students) {
-        StringBuilder builder = new StringBuilder();
-        for (Student student : students) {
-            builder.append(formatShort(student)).append(", ");
-        }
-        return builder.substring(0, builder.length() - 2);
-    }
-
-    public String format(Student student) {
-        return format(student.name, student.userId);
-    }
-
-    public String format(String name, long userId) {
-        return String.format(
-                "[%s](tg://user?id=%d)",
-                name, userId
-        );
-    }
-
-    public String formatShort(Student student) {
-        return String.format(
-                "[%s](tg://user?id=%d)",
-                student.name.split(" ")[1].toCharArray()[0], student.userId
-        );
-    }
-
-    public static String getArguments(int start, String[] args) {
-        StringBuilder s = new StringBuilder();
-        for (int i = start; i < args.length; i++) {
-            s.append(i == start ? args[i] : ' ' + args[i]);
-        }
-        return s.toString();
-    }
-
-    public Student getStudent(List<Student> students, long userId) {
-        return students.stream().filter(student -> student.userId == userId).findFirst().orElse(null);
-    }
-
-    public Chat getChat(long chatId) {
-        Chat chat = chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
-        if (chat == null) {
-            try {
-                YamlFile chatConfig = loadConfig(String.valueOf(chatId));
-                chat = new Chat(chatId, chatConfig, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new ArrayList<>());
-                chats.add(chat);
-                saveChat(chat);
-            } catch (IOException ignored) {
-            }
-        }
-        return chat;
-    }
-
-    public void saveChat(Chat chat) throws IOException {
-        if (!chats.contains(chat)) {
-            chats.add(chat);
-            saveChats();
-        }
-        YamlFile config = chat.config;
-        config.set("settings.timer", chat.settings.timer);
-        config.set("settings.message", chat.settings.message);
-        config.set("settings.buttonNames", chat.settings.buttonNames);
-        config.set("settings.birthdays", chat.settings.birthdays);
-        config.save();
-    }
-
-    public void saveChats() throws IOException {
-        yamlFile.set("chats", chats.stream().map(it -> it.chatId).toList());
-        yamlFile.save();
-    }
-
-    public Rollcall getRollcallById(long chatId, int rollcallId) {
-        return getRollcallById(getChat(chatId), rollcallId);
-    }
-
-    public Rollcall getRollcallById(Chat chat, int rollcallId) {
-        return chat.rollcalls.stream().filter(it -> it.rollcallMessageId == rollcallId).findFirst().orElse(null);
-    }
-
-    public Rollcall getRollcallByThread(Chat chat, int threadId) {
-        return chat.rollcalls.stream().filter(it -> it.threadId == threadId).findFirst().orElse(null);
-    }
-
-    public void addRollcall(Chat chat, Rollcall rollcall) {
-        chat.rollcalls.add(rollcall);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".threadId", rollcall.threadId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".tagAllMessageId", rollcall.tagAllMessageId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultChatId", rollcall.resultChatId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultMessageId", rollcall.resultMessageId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".text", rollcall.text);
-
-        for (RollcallEntry entry : rollcall.entries) {
-            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", entry.answer.name());
-            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
-        }
+    private void answerInline(Update update, String text) {
         try {
-            chat.config.save();
-        } catch (IOException ignored) {
+            AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
+                    .callbackQueryId(update.getCallbackQuery().getId())
+                    .text(text)
+                    .showAlert(false)
+                    .build();
+            telegramClient.execute(answerCallbackQuery);
+        } catch (TelegramApiException ignored) {
         }
     }
 
-    public void removeRollcall(Chat chat, Rollcall rollcall) {
-        chat.rollcalls.remove(rollcall);
-        setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
-    }
-
-    private void checkBirthdays() {
+    public static void checkBirthdays() {
         LocalDate today = LocalDate.now();
         try {
             for (Chat chat : chats) {
@@ -477,7 +280,7 @@ public class Bot {
                     else lastBirthday = LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
                     if (isBirthdayToday(student, today) && lastBirthday != today) {
                         String message = "🎉 С днем рождения, " + format(student) + "! 🎂";
-                        telegramBot.sendMessage(chat.chatId, 0, message);
+                        telegramAPI.sendMessage(chat.chatId, 0, message);
                         chatConfig.set("birthdays." + student.userId, today);
                         chatConfig.save();
                     }
@@ -488,7 +291,7 @@ public class Bot {
         }
     }
 
-    private boolean isBirthdayToday(Student student, LocalDate today) {
+    public static boolean isBirthdayToday(Student student, LocalDate today) {
         LocalDate birthDate = student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate();
         return birthDate.getMonth() == today.getMonth() &&
                 birthDate.getDayOfMonth() == today.getDayOfMonth();
@@ -498,15 +301,11 @@ public class Bot {
     public boolean isAdmin(Update update) {
         if (update.getMessage().isUserMessage()) return false;
         long userId = update.getMessage().getFrom().getId();
-        return telegramBot.getChatAdministrators(update.getMessage().getChatId()).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
-    }
-
-    public static String instantToString(Instant instant) {
-        return DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(instant);
+        return telegramAPI.getChatAdministrators(update.getMessage().getChatId()).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
     }
 
     private void sendError(long chatId, int threadId, String error) {
-        telegramBot.sendMessageInline(chatId, threadId, getDevLink(), error + "\nУверен, что сделал всё правильно? Если да:\n");
+        telegramAPI.sendMessageInline(chatId, threadId, getDevLink(), error + "\nУверен, что сделал всё правильно? Если да:\n");
     }
 
     private InlineKeyboardMarkup getDevLink() {

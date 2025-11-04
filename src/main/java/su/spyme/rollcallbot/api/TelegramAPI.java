@@ -1,104 +1,86 @@
 package su.spyme.rollcallbot.api;
 
-import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
-import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatAdministrators;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
-import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.generics.TelegramClient;
-import su.spyme.rollcallbot.Bot;
 
 import java.util.Collections;
 import java.util.List;
 
-public class TelegramBot implements LongPollingSingleThreadUpdateConsumer {
+import static su.spyme.rollcallbot.Main.telegramClient;
 
-    public Bot bot;
-    public TelegramClient telegramClient;
+public class TelegramAPI {
+    private static final Logger logger = LoggerFactory.getLogger(TelegramAPI.class);
 
-    public void start(){
-        telegramClient = new OkHttpTelegramClient(getBotToken());
-        bot = new Bot();
-        bot.start(this);
-    }
-
-    @Override
-    public void consume(Update update) {
-        try {
-            bot.onUpdateReceived(update);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public String getBotToken(){
+    public String getBotToken() {
         return System.getenv("rollcall_bot_token");
     }
 
-    public Message sendMessage(long chatId, int messageThreadId, String text){
-        try{
+    public Message sendMessage(long chatId, int messageThreadId, String text) {
+        try {
             SendMessage sendMessage = SendMessage.builder()
                     .chatId(chatId)
                     .text(text)
                     .parseMode("Markdown")
                     .build();
-            if (messageThreadId > 0){
+            if (messageThreadId > 0) {
                 sendMessage.setMessageThreadId(messageThreadId);
             }
             return telegramClient.execute(sendMessage);
-        }catch(TelegramApiException ex){
-            System.out.println("Error while sendMessage(" + chatId + ", " + messageThreadId + ")");
+        } catch (TelegramApiException ex) {
+            logger.error("Error while sendMessage({}, {})", chatId, messageThreadId);
             ex.printStackTrace();
         }
         return null;
     }
 
-    public Message sendMessageInline(long chatId,  int messageThreadId, InlineKeyboardMarkup inline, String text){
+    public Message sendMessageInline(long chatId, int messageThreadId, InlineKeyboardMarkup inline, String text) {
         return sendMessageInline(chatId, messageThreadId, inline, text, "Markdown");
     }
 
-    public Message sendMessageInline(long chatId, int messageThreadId, InlineKeyboardMarkup inline, String text, String parseMode){
-        try{
+    public Message sendMessageInline(long chatId, int messageThreadId, InlineKeyboardMarkup inline, String text, String parseMode) {
+        try {
             SendMessage sendMessage = SendMessage.builder()
                     .chatId(chatId)
                     .text(text)
                     .replyMarkup(inline)
                     .parseMode(parseMode)
                     .build();
-            if (messageThreadId > 0){
+            if (messageThreadId > 0) {
                 sendMessage.setMessageThreadId(messageThreadId);
             }
             return telegramClient.execute(sendMessage);
-        }catch(TelegramApiException ex){
-            System.out.println("Error while sendMessageInline(" + chatId + ", " + messageThreadId + ")");
+        } catch (TelegramApiException ex) {
+            logger.error("Error while sendMessageInline({}, {})", chatId, messageThreadId);
             ex.printStackTrace();
         }
         return null;
     }
 
-    public void editMessageReplyMarkup(long chatId, int messageId, InlineKeyboardMarkup  inline){
-        try{
+    public void editMessageReplyMarkup(long chatId, int messageId, InlineKeyboardMarkup inline) {
+        try {
             EditMessageReplyMarkup editMessage = EditMessageReplyMarkup.builder()
                     .chatId(chatId)
                     .messageId(messageId)
                     .replyMarkup(inline)
                     .build();
             telegramClient.execute(editMessage);
-        }catch(TelegramApiException ex){
-            System.out.println("Error while editMessageReplyMarkup(" + chatId + ", " + messageId + ")");
+        } catch (TelegramApiException ex) {
+            logger.error("Error while editMessageReplyMarkup({}, {})", chatId, messageId);
             ex.printStackTrace();
         }
     }
 
-    public void editMessageText(long chatId, int messageId, String text){
-        try{
+    public void editMessageText(long chatId, int messageId, String text) {
+        try {
             EditMessageText editMessage = EditMessageText.builder()
                     .chatId(chatId)
                     .messageId(messageId)
@@ -106,26 +88,26 @@ public class TelegramBot implements LongPollingSingleThreadUpdateConsumer {
                     .parseMode("Markdown")
                     .build();
             telegramClient.execute(editMessage);
-        }catch(TelegramApiException ex){
-            System.out.println("Error while editMessageText(" + chatId + ", " + messageId + ")");
+        } catch (TelegramApiException ex) {
+            logger.error("Error while editMessageText({}, {})", chatId, messageId);
             ex.printStackTrace();
         }
     }
 
-    public void deleteMessage(long chatId, int messageId){
-        try{
+    public void deleteMessage(long chatId, int messageId) {
+        try {
             DeleteMessage deleteMessage = DeleteMessage.builder()
                     .chatId(chatId)
                     .messageId(messageId)
                     .build();
             telegramClient.execute(deleteMessage);
-        }catch(TelegramApiException ex){
-            System.out.println("Error while deleteMessage(" + chatId + ", " + messageId + ")");
+        } catch (TelegramApiException ex) {
+            logger.error("Error while deleteMessage({}, {})", chatId, messageId);
             ex.printStackTrace();
         }
     }
 
-    public List<ChatMember> getChatAdministrators(long chatId){
+    public List<ChatMember> getChatAdministrators(long chatId) {
         List<ChatMember> chatAdministrators = Collections.emptyList();
         try {
             chatAdministrators = telegramClient.execute(new GetChatAdministrators(String.valueOf(chatId)));

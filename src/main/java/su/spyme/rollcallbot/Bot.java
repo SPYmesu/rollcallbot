@@ -82,7 +82,9 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             long userId = update.getMessage().getFrom().getId();
             Chat chat = getChat(chatId);
             List<Student> students = chat.students;
-            String command = args[0].toLowerCase().replaceFirst("/", "").replaceFirst(".", "");
+            String command = args[0].toLowerCase().replaceFirst(".", "/");
+            if (!command.startsWith("/")) return;
+            command = command.substring(1);
             if (command.contains("@")) {
                 command = command.substring(0, command.indexOf('@'));
             }

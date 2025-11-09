@@ -18,7 +18,6 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -270,21 +269,14 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
     }
 
     public static void checkBirthdays() {
-        LocalDate today = LocalDate.now();
         try {
             for (Chat chat : chats) {
                 if (!chat.settings.birthdays) continue;
                 YamlFile chatConfig = loadConfig(String.valueOf(chat.chatId));
                 for (Student student : chat.students) {
-                    String s = chatConfig.getString("birthdays." + student.userId);
-                    LocalDate lastBirthday;
-                    if (s == null) lastBirthday = null;
-                    else lastBirthday = LocalDate.parse(s, DateTimeFormatter.ISO_LOCAL_DATE);
-                    if (isBirthdayToday(student, today) && lastBirthday != today) {
+                    if (isBirthdayToday(student)) {
                         String message = "🎉 С днем рождения, " + format(student) + "! 🎂";
                         telegramAPI.sendMessage(chat.chatId, 0, message);
-                        chatConfig.set("birthdays." + student.userId, today);
-                        chatConfig.save();
                     }
                 }
             }
@@ -293,7 +285,8 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
         }
     }
 
-    public static boolean isBirthdayToday(Student student, LocalDate today) {
+    public static boolean isBirthdayToday(Student student) {
+        LocalDate today = LocalDate.now();
         LocalDate birthDate = student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate();
         return birthDate.getMonth() == today.getMonth() &&
                 birthDate.getDayOfMonth() == today.getDayOfMonth();

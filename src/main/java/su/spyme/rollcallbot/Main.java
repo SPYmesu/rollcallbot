@@ -9,6 +9,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import su.spyme.rollcallbot.api.TelegramAPI;
 import su.spyme.rollcallbot.objects.*;
+import su.spyme.rollcallbot.utils.MyUtils;
 import su.spyme.rollcallbot.utils.ReminderUtil;
 
 import java.text.SimpleDateFormat;
@@ -121,7 +122,7 @@ public class Main {
             if (now.isAfter(nextRun)) {
                 nextRun = nextRun.plusDays(1);
             }
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(Bot::checkBirthdays,
+            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(MyUtils::checkBirthdays,
                     Duration.between(now, nextRun).toMillis(),
                     24 * 60 * 60 * 1000,
                     TimeUnit.MILLISECONDS);

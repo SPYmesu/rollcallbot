@@ -2,19 +2,23 @@ package su.spyme.rollcallbot.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatAdministrators;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.Collections;
 import java.util.List;
 
+import static su.spyme.rollcallbot.Main.telegramAPI;
 import static su.spyme.rollcallbot.Main.telegramClient;
 
 public class TelegramAPI {
@@ -115,5 +119,30 @@ public class TelegramAPI {
             e.printStackTrace();
         }
         return chatAdministrators;
+    }
+
+    public boolean isAdmin(long chatId, long userId) {
+        return telegramAPI.getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
+    }
+
+    public void answerInline(Update update, String text) {
+        try {
+            AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()
+                    .callbackQueryId(update.getCallbackQuery().getId())
+                    .text(text)
+                    .showAlert(false)
+                    .build();
+            telegramClient.execute(answerCallbackQuery);
+        } catch (TelegramApiException ignored) {
+        }
+    }
+
+    public InlineKeyboardButton getInlineButton(String text, String callback) {
+        return InlineKeyboardButton
+                .builder()
+                .text(text)
+                .callbackData(callback)
+                .switchInlineQueryCurrentChat(callback)
+                .build();
     }
 }

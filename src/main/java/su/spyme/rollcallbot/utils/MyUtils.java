@@ -1,16 +1,21 @@
 package su.spyme.rollcallbot.utils;
 
 import org.simpleyaml.configuration.file.YamlFile;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
-import static su.spyme.rollcallbot.Main.chats;
-import static su.spyme.rollcallbot.Main.yamlFile;
+import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
 import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
+import static su.spyme.rollcallbot.utils.StringUtils.format;
 
 public class MyUtils {
 
@@ -82,7 +87,75 @@ public class MyUtils {
         setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
     }
 
+    public static InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {
+        List<String> buttons = chat.settings.buttonNames;
+        return InlineKeyboardMarkup.builder()
+                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(0) + " (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
+                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(1) + " (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
+                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(2) + " (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + " nothere")))
+                .build();
+    }
+
+    public static String getRollcallResult(Rollcall rollcall, List<Student> sortExample) {
+        List<Student> here = rollcall.getStudents(RollcallAnswer.HERE);
+        here.sort(Comparator.comparingInt(sortExample::indexOf));
+        List<Student> notHere = rollcall.getStudents(RollcallAnswer.NOTHERE);
+        notHere.sort(Comparator.comparingInt(sortExample::indexOf));
+        List<Student> notHereReason = rollcall.getStudents(RollcallAnswer.NOTHEREREASON);
+        notHereReason.sort(Comparator.comparingInt(sortExample::indexOf));
+        List<Student> ignore = rollcall.getStudents(RollcallAnswer.IGNORE);
+        StringBuilder builder = new StringBuilder("Результат переклички. `#" + rollcall.rollcallMessageId + "`");
+        builder.append("\n\n");
+        builder.append("На паре: (").append(here.size()).append(")");
+        for (Student student : here) {
+            builder.append("\n").append(student.name);
+        }
+        int notHereSize = notHere.size() + notHereReason.size();
+        if (notHereSize > 0) {
+            builder.append("\n");
+            builder.append("\nНе на паре: (").append(notHereSize).append(")");
+            for (Student student : notHereReason) {
+                builder.append("\n").append(student.name).append(" (по ув. причине)");
+            }
+            for (Student student : notHere) {
+                builder.append("\n").append(student.name);
+            }
+        }
+        if (!ignore.isEmpty()) {
+            builder.append("\n");
+            builder.append("\nПроигнорировали: (").append(ignore.size()).append(")");
+            for (Student student : ignore) {
+                builder.append("\n").append(student.name);
+            }
+        }
+        return builder.toString();
+    }
+
     public static Student getStudent(List<Student> students, long userId) {
         return students.stream().filter(student -> student.userId == userId).findFirst().orElse(null);
+    }
+
+    public static void checkBirthdays() {
+        try {
+            for (Chat chat : chats) {
+                if (!chat.settings.birthdays) continue;
+                YamlFile chatConfig = loadConfig(String.valueOf(chat.chatId));
+                for (Student student : chat.students) {
+                    if (isBirthdayToday(student)) {
+                        String message = "🎉 С днем рождения, " + format(student) + "! 🎂";
+                        telegramAPI.sendMessage(chat.chatId, 0, message);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isBirthdayToday(Student student) {
+        LocalDate today = LocalDate.now();
+        LocalDate birthDate = student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate();
+        return birthDate.getMonth() == today.getMonth() &&
+                birthDate.getDayOfMonth() == today.getDayOfMonth();
     }
 }

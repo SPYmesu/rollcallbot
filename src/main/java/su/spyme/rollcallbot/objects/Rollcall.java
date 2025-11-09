@@ -18,6 +18,7 @@ public class Rollcall {
     public long resultChatId;
     public int resultMessageId;
     public String text;
+    public long startTime;
     public List<RollcallEntry> entries;
 
     public int getCount(RollcallAnswer answer) {

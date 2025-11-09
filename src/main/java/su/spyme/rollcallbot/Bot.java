@@ -108,7 +108,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         for (Student student : students) {
                             entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
                         }
-                        Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, entries);
+                        Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, System.currentTimeMillis(), entries);
                         rollcall.setResultChatId(userId);
                         Message resultMessage = telegramAPI.sendMessage(userId, 0, getRollcallResult(rollcall, students));
                         if (resultMessage == null) {
@@ -146,7 +146,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     telegramAPI.deleteMessage(chatId, rollcall.tagAllMessageId);
                     telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
                     removeRollcall(chat, rollcall);
-                    StringBuilder text = new StringBuilder("Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
+                    StringBuilder text = new StringBuilder("\uD83D\uDE4B Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
 
                     RollcallEntry best = rollcall.entries.getFirst();
                     for (RollcallEntry entry : rollcall.entries) {
@@ -191,7 +191,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
                         telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
-                        int ignoreMessageId = telegramAPI.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\nНе забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
+                        int ignoreMessageId = telegramAPI.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
                         Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramAPI.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
                     }
                 }

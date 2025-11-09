@@ -9,6 +9,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import su.spyme.rollcallbot.api.TelegramAPI;
 import su.spyme.rollcallbot.objects.*;
+import su.spyme.rollcallbot.utils.ReminderUtil;
 
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -96,6 +97,7 @@ public class Main {
                             chatConfig.getLong("rollcalls." + key + ".resultChatId"),
                             chatConfig.getInt("rollcalls." + key + ".resultMessageId"),
                             chatConfig.getString("rollcalls." + key + ".text"),
+                            chatConfig.getLong("rollcalls." + key + ".startTime"),
                             entries
                     ));
                 }
@@ -112,6 +114,7 @@ public class Main {
                 saveChat(chat);
             }
             logger.info("Загружено {} чатов", chats.size());
+            new ReminderUtil().start();
 
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);

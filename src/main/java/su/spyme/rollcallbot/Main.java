@@ -43,17 +43,19 @@ public class Main {
         inputThread.setDaemon(true);
         inputThread.start();
 
-        start();
+        loadAll();
+        checkBirthdays();
         try {
             TelegramBotsLongPollingApplication botsApplication = new TelegramBotsLongPollingApplication();
             botsApplication.registerBot(System.getenv("rollcall_bot_token"), new Bot());
             telegramClient = new OkHttpTelegramClient(System.getenv("rollcall_bot_token"));
+            telegramAPI.setBotCommands();
         } catch (TelegramApiException exception) {
             logger.error("Error in TelegramAPI: {}", exception.getMessage());
         }
     }
 
-    public static void start() {
+    public static void loadAll() {
         try {
             yamlFile = loadConfig("config");
 
@@ -116,19 +118,21 @@ public class Main {
             }
             logger.info("Загружено {} чатов", chats.size());
             new ReminderUtil().start();
-
-            LocalDateTime now = LocalDateTime.now();
-            LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);
-            if (now.isAfter(nextRun)) {
-                nextRun = nextRun.plusDays(1);
-            }
-            Executors.newScheduledThreadPool(1).scheduleAtFixedRate(MyUtils::checkBirthdays,
-                    Duration.between(now, nextRun).toMillis(),
-                    24 * 60 * 60 * 1000,
-                    TimeUnit.MILLISECONDS);
         } catch (Exception exception) {
             logger.error("Error while loading...");
             throw new RuntimeException(exception);
         }
+    }
+
+    private static void checkBirthdays() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);
+        if (now.isAfter(nextRun)) {
+            nextRun = nextRun.plusDays(1);
+        }
+        Executors.newScheduledThreadPool(1).scheduleAtFixedRate(MyUtils::checkBirthdays,
+                Duration.between(now, nextRun).toMillis(),
+                24 * 60 * 60 * 1000,
+                TimeUnit.MILLISECONDS);
     }
 }

@@ -80,6 +80,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             if (command.contains("@")) {
                 command = command.substring(0, command.indexOf('@'));
             }
+            if (command.isEmpty()) return;
             switch (command) {
                 case "all", "позвать", "все" -> {
                     if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
@@ -202,7 +203,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             
                             .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
                             
-                            .студент (.с) `<Дата рожения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
+                            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
                             
                             Сообщить об ошибке: https://github.com/SPY\\_mesu/rollcallbot/issues
                             Исходный код: https://github.com/SPY\\_mesu/rollcallbot

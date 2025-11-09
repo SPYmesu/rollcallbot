@@ -3,6 +3,7 @@ package su.spyme.rollcallbot.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatAdministrators;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -10,11 +11,15 @@ import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageRe
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.chatmember.ChatMember;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeAllChatAdministrators;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeAllPrivateChats;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +31,35 @@ public class TelegramAPI {
 
     public String getBotToken() {
         return System.getenv("rollcall_bot_token");
+    }
+
+    public void setBotCommands() {
+        try {
+            List<BotCommand> privateCommands = new ArrayList<>();
+            privateCommands.add(new BotCommand("settings", "Показать меню настроек"));
+            privateCommands.add(new BotCommand("help", "Показать меню помощи"));
+            telegramClient.execute(SetMyCommands.builder()
+                    .commands(privateCommands)
+                    .scope(BotCommandScopeAllPrivateChats.builder().build())
+                    .build());
+
+            List<BotCommand> adminCommands = new ArrayList<>();
+            adminCommands.add(new BotCommand("help", "Показать меню помощи"));
+            adminCommands.add(new BotCommand("rollcall", "Начать перекличку"));
+            adminCommands.add(new BotCommand("rollcallstop", "Завершить перекличку принудительно"));
+            adminCommands.add(new BotCommand("all", "Упомянуть всех студентов чате"));
+            adminCommands.add(new BotCommand("ignore", "Упомянуть тех, кто не ответил"));
+            adminCommands.add(new BotCommand("student", "Добавить студента по сообщению-ответу (<дата рождения> <Фамилия Имя>)"));
+
+            telegramClient.execute(SetMyCommands.builder()
+                    .commands(adminCommands)
+                    .scope(BotCommandScopeAllChatAdministrators.builder().build())
+                    .build());
+
+        } catch (TelegramApiException ex) {
+            logger.error("Error while setBotCommands()");
+            ex.printStackTrace();
+        }
     }
 
     public Message sendMessage(long chatId, int messageThreadId, String text) {

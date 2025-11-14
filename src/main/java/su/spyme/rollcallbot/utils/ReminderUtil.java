@@ -36,7 +36,8 @@ public class ReminderUtil {
     }
 
     private void checkRollcall(Chat chat, Rollcall rollcall, long currentTime) {
-        long finishTime = rollcall.startTime + TimeUnit.HOURS.toMillis(1);
+        if (chat.settings.timer == -1) return;
+        long finishTime = rollcall.startTime + TimeUnit.MINUTES.toMillis(chat.settings.timer);
         long timeLeft = finishTime - currentTime;
         String rollcallKey = rollcall.chatId + "_" + rollcall.threadId + "_" + rollcall.startTime;
         if (timeLeft <= 0) {

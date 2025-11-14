@@ -316,7 +316,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     }
                 }
                 case "help", "помощь" -> {
-                    if (!telegramAPI.isAdmin(chatId, userId) && !update.getMessage().isUserMessage()) return;
+                    if (!telegramAPI.isAdmin(chatId, userId)) return;
                     telegramAPI.sendMessage(chatId, threadId, """
                             Помощь по командам:
                             
@@ -331,6 +331,8 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
                             
                             .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
+
+                            .настройки - открывает меню настроек (только в личном чате с ботом)
                             
                             Сообщить об ошибке: https://github.com/SPY\\_mesu/rollcallbot/issues
                             Исходный код: https://github.com/SPY\\_mesu/rollcallbot
@@ -582,6 +584,30 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         builder.keyboardRow(new InlineKeyboardRow(getInlineButton("Чат " + myChat.name, "settings " + myChat.chatId + " select")));
                     }
                     telegramAPI.sendMessageInline(chatId, builder.build(), "✏ Выбери чат для настройки");
+                }
+                case "help", "помощь" -> {
+                    if (!update.getMessage().isUserMessage()) return;
+                    telegramAPI.sendMessage(chatId, """
+                            Помощь по командам:
+                            
+                            .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
+                            *Так же эта команда автоматически выполняет следующую*
+                            
+                            .позвать (.все) - упоминает всех добавленных студентов
+                            
+                            .игнор - упоминает только тех, кто ещё не участвовал в перекличке
+                            *Сообщение само удалится через 120 секунд*
+                            
+                            .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
+                            
+                            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
+                            
+                            .настройки - открывает меню настроек (только в личном чате с ботом)
+                            
+                            Сообщить об ошибке: https://github.com/SPY\\_mesu/rollcallbot/issues
+                            Исходный код: https://github.com/SPY\\_mesu/rollcallbot
+                            Поддержать разработчика: https://boosty.to/SPY\\_me/about
+                            """);
                 }
                 default -> logger.debug("Unhandled command: {}", command);
             }

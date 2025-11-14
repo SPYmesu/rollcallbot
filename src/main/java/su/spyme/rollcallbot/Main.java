@@ -24,8 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.utils.ConfigUtils.getKeys;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
-import static su.spyme.rollcallbot.utils.MyUtils.getStudent;
-import static su.spyme.rollcallbot.utils.MyUtils.saveChat;
+import static su.spyme.rollcallbot.utils.MyUtils.*;
 import static su.spyme.rollcallbot.utils.StringUtils.instantToString;
 
 public class Main {
@@ -52,6 +51,9 @@ public class Main {
             telegramAPI.setBotCommands();
         } catch (TelegramApiException exception) {
             logger.error("Error in TelegramAPI: {}", exception.getMessage());
+        }
+        for (Chat chat : chats) {
+            updateChatAdmins(chat);
         }
     }
 
@@ -112,7 +114,8 @@ public class Main {
                 );
                 if (settings.buttonNames.isEmpty())
                     settings.buttonNames = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
-                Chat chat = new Chat(Long.parseLong(chatId), chatConfig, settings, chatStudents, chatRollcalls);
+                String name = chatConfig.getString("name", "");
+                Chat chat = new Chat(Long.parseLong(chatId), name, chatConfig, new ArrayList<>(), settings, chatStudents, chatRollcalls);
                 chats.add(chat);
                 saveChat(chat);
             }

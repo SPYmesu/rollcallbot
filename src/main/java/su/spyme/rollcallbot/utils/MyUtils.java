@@ -2,6 +2,7 @@ package su.spyme.rollcallbot.utils;
 
 import org.simpleyaml.configuration.file.YamlFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import su.spyme.rollcallbot.objects.*;
 
@@ -24,7 +25,9 @@ public class MyUtils {
         if (chat == null) {
             try {
                 YamlFile chatConfig = loadConfig(String.valueOf(chatId));
-                chat = new Chat(chatId, chatConfig, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new ArrayList<>());
+                List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
+                String name = telegramAPI.getChat(chatId).getTitle();
+                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new ArrayList<>());
                 chats.add(chat);
                 saveChat(chat);
             } catch (IOException ignored) {
@@ -39,6 +42,7 @@ public class MyUtils {
             saveChats();
         }
         YamlFile config = chat.config;
+        config.set("name", chat.name);
         config.set("settings.timer", chat.settings.timer);
         config.set("settings.message", chat.settings.message);
         config.set("settings.buttonNames", chat.settings.buttonNames);
@@ -49,6 +53,14 @@ public class MyUtils {
     public static void saveChats() throws IOException {
         yamlFile.set("chats", chats.stream().map(it -> it.chatId).toList());
         yamlFile.save();
+    }
+
+    public static void updateChatAdmins(Chat chat) {
+        chat.setAdmins(telegramAPI.getChatAdministrators(chat.chatId).stream().map(it -> it.getUser().getId()).toList());
+    }
+
+    public static void updateChatName(Chat chat) {
+        chat.setName(telegramAPI.getChat(chat.chatId).getTitle());
     }
 
     public static Rollcall getRollcallById(long chatId, int rollcallId) {
@@ -90,9 +102,146 @@ public class MyUtils {
     public static InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {
         List<String> buttons = chat.settings.buttonNames;
         return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(0) + " (" + rollcall.getCount(RollcallAnswer.HERE) + ")", rollcall.rollcallMessageId + " here")))
-                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(1) + " (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", rollcall.rollcallMessageId + " notherereason")))
-                .keyboardRow(new InlineKeyboardRow(telegramAPI.getInlineButton(buttons.get(2) + " (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", rollcall.rollcallMessageId + " nothere")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(0) + " (" + rollcall.getCount(RollcallAnswer.HERE) + ")", "rollcall " + rollcall.rollcallMessageId + " here")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(1) + " (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", "rollcall " + rollcall.rollcallMessageId + " notherereason")))
+                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(2) + " (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", "rollcall " + rollcall.rollcallMessageId + " nothere")))
+                .build();
+    }
+
+    public static InlineKeyboardMarkup getSettingsInline(Chat chat) {
+        return InlineKeyboardMarkup.builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "⏳ Автозавершение: " + (chat.settings.timer == -1 ? "выкл." : chat.settings.timer + " мин."),
+                                        "settings " + chat.chatId + " timer"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83C\uDF89 Дни рождения: " + (chat.settings.birthdays ? "вкл." : "выкл."),
+                                        "settings " + chat.chatId + " birthdays"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83D\uDCAC Управление сообщением переклички",
+                                        "settings " + chat.chatId + " message"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83D\uDC65 Управление студентами",
+                                        "settings " + chat.chatId + " students"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83D\uDD04 Обновить информацию о чате",
+                                        "settings " + chat.chatId + " updatechat"
+                                )
+                        )
+                )
+                .build();
+    }
+
+    public static InlineKeyboardMarkup getMessageSettingsInline(Chat chat) {
+        return InlineKeyboardMarkup.builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "ℹ Изменить сообщение",
+                                        "settings " + chat.chatId + " message text"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "✏: " + chat.settings.buttonNames.get(0),
+                                        "settings " + chat.chatId + " message button0"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "✏: " + chat.settings.buttonNames.get(1),
+                                        "settings " + chat.chatId + " message button1"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "✏: " + chat.settings.buttonNames.get(2),
+                                        "settings " + chat.chatId + " message button2"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83D\uDD19 Назад",
+                                        "settings " + chat.chatId + " select"
+                                )
+                        )
+                )
+                .build();
+    }
+
+    public static String getStudentsMenu(Chat chat) {
+        StringBuilder sb = new StringBuilder("\uD83D\uDC65 Студенты в этом чате:\n\n");
+        int num = 1;
+        for (Student student : chat.students) {
+            sb.append(num++).append(". ").append(student.getName()).append("\n");
+        }
+        sb.append("\nℹ Отправь номер студента, которого нужно изменить");
+        return sb.toString();
+    }
+
+    public static InlineKeyboardMarkup getStudentInline(Chat chat, Student student) {
+        return InlineKeyboardMarkup.builder()
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "ℹ Изменить позицию в списке",
+                                        "settings " + chat.chatId + " student " + student.userId + " position"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "ℹ Изменить фамилию и имя",
+                                        "settings " + chat.chatId + " student " + student.userId + " name"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "ℹ Изменить дату рождения",
+                                        "settings " + chat.chatId + " student " + student.userId + " birthdate"
+                                )
+                        )
+                )
+                .keyboardRow(
+                        new InlineKeyboardRow(
+                                getInlineButton(
+                                        "\uD83D\uDD19 Назад",
+                                        "settings " + chat.chatId + " students"
+                                )
+                        )
+                )
                 .build();
     }
 
@@ -133,6 +282,15 @@ public class MyUtils {
 
     public static Student getStudent(List<Student> students, long userId) {
         return students.stream().filter(student -> student.userId == userId).findFirst().orElse(null);
+    }
+
+    public static InlineKeyboardButton getInlineButton(String text, String callback) {
+        return InlineKeyboardButton
+                .builder()
+                .text(text)
+                .callbackData(callback)
+                .switchInlineQueryCurrentChat(callback)
+                .build();
     }
 
     public static void checkBirthdays() {

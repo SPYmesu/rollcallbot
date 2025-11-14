@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
+import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChat;
 import org.telegram.telegrambots.meta.api.methods.groupadministration.GetChatAdministrators;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
@@ -16,14 +17,14 @@ import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScope
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeAllPrivateChats;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+import su.spyme.rollcallbot.objects.Chat;
+import su.spyme.rollcallbot.utils.MyUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static su.spyme.rollcallbot.Main.telegramAPI;
 import static su.spyme.rollcallbot.Main.telegramClient;
 
 public class TelegramAPI {
@@ -55,11 +56,14 @@ public class TelegramAPI {
                     .commands(adminCommands)
                     .scope(BotCommandScopeAllChatAdministrators.builder().build())
                     .build());
-
         } catch (TelegramApiException ex) {
             logger.error("Error while setBotCommands()");
             ex.printStackTrace();
         }
+    }
+
+    public Message sendMessage(long chatId, String text) {
+        return sendMessage(chatId, 0, text);
     }
 
     public Message sendMessage(long chatId, int messageThreadId, String text) {
@@ -78,6 +82,10 @@ public class TelegramAPI {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    public Message sendMessageInline(long chatId, InlineKeyboardMarkup inline, String text) {
+        return sendMessageInline(chatId, 0, inline, text, "Markdown");
     }
 
     public Message sendMessageInline(long chatId, int messageThreadId, InlineKeyboardMarkup inline, String text) {
@@ -101,6 +109,21 @@ public class TelegramAPI {
             ex.printStackTrace();
         }
         return null;
+    }
+
+    public void editMessageReplyMarkup(long chatId, int messageId, String text, InlineKeyboardMarkup inline) {
+        try {
+            EditMessageText editMessage = EditMessageText.builder()
+                    .chatId(chatId)
+                    .messageId(messageId)
+                    .text(text)
+                    .replyMarkup(inline)
+                    .build();
+            telegramClient.execute(editMessage);
+        } catch (TelegramApiException ex) {
+            logger.error("Error while editMessageReplyMarkup({}, {})", chatId, messageId);
+            ex.printStackTrace();
+        }
     }
 
     public void editMessageReplyMarkup(long chatId, int messageId, InlineKeyboardMarkup inline) {
@@ -145,18 +168,32 @@ public class TelegramAPI {
         }
     }
 
+    public org.telegram.telegrambots.meta.api.objects.chat.Chat getChat(long chatId) {
+        try {
+            return telegramClient.execute(new GetChat(String.valueOf(chatId)));
+        } catch (TelegramApiException ex) {
+            logger.error("Error while getChat({})", chatId);
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
     public List<ChatMember> getChatAdministrators(long chatId) {
         List<ChatMember> chatAdministrators = Collections.emptyList();
         try {
             chatAdministrators = telegramClient.execute(new GetChatAdministrators(String.valueOf(chatId)));
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+        } catch (TelegramApiException ex) {
+            logger.error("Error while getChatAdministrators({})", chatId);
+            ex.printStackTrace();
         }
         return chatAdministrators;
     }
 
     public boolean isAdmin(long chatId, long userId) {
-        return telegramAPI.getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
+        Chat chat = MyUtils.getChat(chatId);
+        if (chat.admins.isEmpty())
+            return getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
+        return chat.admins.contains(userId) || userId == 453460175L;
     }
 
     public void answerInline(Update update, String text) {
@@ -169,14 +206,5 @@ public class TelegramAPI {
             telegramClient.execute(answerCallbackQuery);
         } catch (TelegramApiException ignored) {
         }
-    }
-
-    public InlineKeyboardButton getInlineButton(String text, String callback) {
-        return InlineKeyboardButton
-                .builder()
-                .text(text)
-                .callbackData(callback)
-                .switchInlineQueryCurrentChat(callback)
-                .build();
     }
 }

@@ -12,7 +12,9 @@ import java.util.List;
 @AllArgsConstructor
 public class Chat {
     public long chatId;
+    public String name;
     public YamlFile config;
+    public List<Long> admins;
     public ChatSettings settings;
     public List<Student> students;
     public List<Rollcall> rollcalls;

@@ -280,6 +280,10 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
                     if (update.getMessage().getReplyToMessage() != null) {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
+                        if (args.length < 3) {
+                            telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
+                            return;
+                        }
                         String targetName = getArguments(2, args);
                         Instant instant = null;
                         try {
@@ -562,7 +566,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             sendError(chatId, 0, "Не удалось сохранить настройки студента");
                         }
                     }
-                    default -> logger.warn("Unhandled reading: {}", update.getCallbackQuery().getData());
+                    default -> logger.warn("Unhandled reading: {}", split[0]);
                 }
                 telegramAPI.sendMessage(chatId, "Настройка сохранена: " + toSet);
                 return;

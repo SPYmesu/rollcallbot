@@ -1,11 +1,10 @@
 package su.spyme.rollcallbot.utils;
 
-import su.spyme.rollcallbot.objects.Chat;
-import su.spyme.rollcallbot.objects.Rollcall;
-import su.spyme.rollcallbot.objects.RollcallAnswer;
-import su.spyme.rollcallbot.objects.RollcallEntry;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
+import su.spyme.rollcallbot.objects.*;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,6 +36,10 @@ public class ReminderUtil {
 
     private void checkRollcall(Chat chat, Rollcall rollcall, long currentTime) {
         if (chat.settings.timer == -1) return;
+        if (rollcall.getStudents(RollcallAnswer.IGNORE).isEmpty()) {
+            processFinish(chat, rollcall);
+            return;
+        }
         long finishTime = rollcall.startTime + TimeUnit.MINUTES.toMillis(chat.settings.timer);
         long timeLeft = finishTime - currentTime;
         String rollcallKey = rollcall.chatId + "_" + rollcall.threadId + "_" + rollcall.startTime;
@@ -70,8 +73,12 @@ public class ReminderUtil {
             case "5min" -> 5;
             default -> 0;
         };
-        int ignoreMessageId = telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...\n⌛ Осталось " + minutesLeft + " минут.").getMessageId();
-        scheduler.schedule(() -> telegramAPI.deleteMessage(rollcall.chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
+        List<Student> ignore = rollcall.getStudents(RollcallAnswer.IGNORE);
+        if (ignore.isEmpty()) return;
+        Message ignoreMessage = telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, tag(ignore) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...\n⌛ Осталось " + minutesLeft + " минут.");
+        if (ignoreMessage != null) {
+            scheduler.schedule(() -> telegramAPI.deleteMessage(rollcall.chatId, ignoreMessage.getMessageId()), 120, TimeUnit.SECONDS);
+        }
     }
 
     private void processFinish(Chat chat, Rollcall rollcall) {

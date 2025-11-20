@@ -15,6 +15,7 @@ public class StringUtils {
 
     public static String tag(List<Student> students) {
         StringBuilder builder = new StringBuilder();
+        if (students.isEmpty()) return "";
         for (Student student : students) {
             builder.append(formatShort(student)).append(", ");
         }
@@ -33,9 +34,10 @@ public class StringUtils {
     }
 
     public static String formatShort(Student student) {
+        String[] split = student.name.split(" ");
         return String.format(
                 "[%s](tg://user?id=%d)",
-                student.name.split(" ")[1].toCharArray()[0], student.userId
+                split.length > 1 ? split[1].toCharArray()[0] : split[0].toCharArray()[0], student.userId
         );
     }
 

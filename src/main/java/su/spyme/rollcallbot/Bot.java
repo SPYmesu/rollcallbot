@@ -259,7 +259,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall == null) {
-                        sendError(chatId, threadId, "recall == null;");
+                        sendError(chatId, threadId, "rollcall == null;");
                         return;
                     }
                     telegramAPI.deleteMessage(chatId, rollcall.rollcallMessageId);
@@ -268,12 +268,14 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     removeRollcall(chat, rollcall);
                     StringBuilder text = new StringBuilder("\uD83D\uDE4B Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
 
-                    RollcallEntry best = rollcall.entries.getFirst();
-                    for (RollcallEntry entry : rollcall.entries) {
-                        if (entry.times > best.times) best = entry;
+                    if (!rollcall.entries.isEmpty()) {
+                        RollcallEntry best = rollcall.entries.getFirst();
+                        for (RollcallEntry entry : rollcall.entries) {
+                            if (entry.times > best.times) best = entry;
+                        }
+                        if (best.times > 5)
+                            text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
                     }
-                    if (best.times > 5)
-                        text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
                     telegramAPI.sendMessage(chatId, threadId, text.toString());
                 }
                 case "student", "студент", "с" -> {
@@ -529,12 +531,13 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         }
                     }
                     case "birthdate" -> {
-                        Instant instant = null;
+                        Instant instant;
                         try {
                             instant = new SimpleDateFormat("dd.MM.yyyy").parse(toSet).toInstant();
                         } catch (Exception ignored) {
                             reading.put(userId, metadata);
                             telegramAPI.sendMessage(chatId, "❌ Нужно указать дату в формате дд.ММ.гггг (01.12.2012)");
+                            return;
                         }
                         try {
                             long studentId = Long.parseLong(split[4]);

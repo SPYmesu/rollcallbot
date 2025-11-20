@@ -86,12 +86,14 @@ public class ReminderUtil {
         telegramAPI.deleteMessage(rollcall.chatId, rollcall.tagAllMessageId);
         removeRollcall(chat, rollcall);
         StringBuilder text = new StringBuilder("\uD83D\uDE4B Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
-        RollcallEntry best = rollcall.entries.getFirst();
-        for (RollcallEntry entry : rollcall.entries) {
-            if (entry.times > best.times) best = entry;
+        if (!rollcall.entries.isEmpty()) {
+            RollcallEntry best = rollcall.entries.getFirst();
+            for (RollcallEntry entry : rollcall.entries) {
+                if (entry.times > best.times) best = entry;
+            }
+            if (best.times > 5)
+                text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
         }
-        if (best.times > 5)
-            text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
         telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());
     }
 

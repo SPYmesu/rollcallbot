@@ -88,8 +88,13 @@ public class Main {
                 for (String key : getKeys(chatConfig, "rollcalls")) {
                     List<RollcallEntry> entries = new ArrayList<>();
                     for (String entryKey : getKeys(chatConfig, "rollcalls." + key + ".entries")) {
+                        Student student = getStudent(chatStudents, Long.parseLong(entryKey));
+                        if (student == null) {
+                            logger.warn("Пропущена запись переклички {} из-за отсутствующего студента {}", key, entryKey);
+                            continue;
+                        }
                         entries.add(new RollcallEntry(
-                                getStudent(chatStudents, Long.parseLong(entryKey)),
+                                student,
                                 RollcallAnswer.valueOf(chatConfig.getString("rollcalls." + key + ".entries." + entryKey + ".answer")),
                                 chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times")
                         ));

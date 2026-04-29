@@ -340,8 +340,8 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
 
                             .настройки - открывает меню настроек (только в личном чате с ботом)
                             
-                            Сообщить об ошибке: https://github.com/SPY\\_mesu/rollcallbot/issues
-                            Исходный код: https://github.com/SPY\\_mesu/rollcallbot
+                            Сообщить об ошибке: https://github.com/SPYmesu/rollcallbot/issues
+                            Исходный код: https://github.com/SPYmesu/rollcallbot
                             Поддержать разработчика: https://boosty.to/SPY\\_me/about
                             """);
                 }

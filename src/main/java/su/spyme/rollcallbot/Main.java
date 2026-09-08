@@ -54,6 +54,14 @@ public class Main {
             telegramClient = new OkHttpTelegramClient(token);
             TelegramBotsLongPollingApplication botsApplication = new TelegramBotsLongPollingApplication();
             botsApplication.registerBot(token, new Bot());
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                logger.info("Остановка бота");
+                try {
+                    botsApplication.close();
+                } catch (Exception exception) {
+                    logger.error("Error while stopping bot", exception);
+                }
+            }));
             telegramAPI.setBotCommands();
         } catch (TelegramApiException exception) {
             logger.error("Error in TelegramAPI: {}", exception.getMessage());

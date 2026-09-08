@@ -32,7 +32,47 @@ java -jar RollcallBot.jar
 - `storage/` — данные чатов в YAML, по файлу на чат, список чатов в `config.yml`
 - `logs/` — лог `rollcallbot.log` с ежедневной ротацией, архивы хранятся 30 дней
 
-Команда `stop` в stdin завершает бота.
+Команда `stop` в stdin завершает бота. Сигнал `SIGTERM` (systemd, Docker) тоже останавливает его корректно.
+
+### Docker
+
+```
+docker compose up -d --build
+```
+
+Токен берётся из переменной окружения или файла `.env` рядом с `docker-compose.yml`:
+
+```
+rollcall_bot_token=123456:ABC...
+rollcall_bot_timezone=Europe/Moscow
+```
+
+Папки `storage/` и `logs/` монтируются из текущей директории.
+
+### systemd
+
+`/etc/systemd/system/rollcallbot.service`:
+
+```
+[Unit]
+Description=RollcallBot
+After=network-online.target
+
+[Service]
+User=rollcallbot
+WorkingDirectory=/opt/rollcallbot
+Environment=rollcall_bot_token=123456:ABC...
+Environment=rollcall_bot_timezone=Europe/Moscow
+ExecStart=/usr/bin/java -jar /opt/rollcallbot/RollcallBot.jar
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```
+systemctl enable --now rollcallbot
+```
 
 ## Команды
 

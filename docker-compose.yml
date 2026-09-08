@@ -1,0 +1,10 @@
+services:
+  rollcallbot:
+    build: .
+    restart: unless-stopped
+    environment:
+      rollcall_bot_token: ${rollcall_bot_token}
+      rollcall_bot_timezone: ${rollcall_bot_timezone:-Europe/Moscow}
+    volumes:
+      - ./storage:/app/storage
+      - ./logs:/app/logs

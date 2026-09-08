@@ -43,6 +43,14 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
 
     @Override
     public void consume(Update update) {
+        try {
+            handle(update);
+        } catch (Exception exception) {
+            logger.error("Error while handling update {}", update.getUpdateId(), exception);
+        }
+    }
+
+    private void handle(Update update) {
         if (update.hasCallbackQuery()) {
             handleCallback(update);
         } else if (update.hasMessage() && update.getMessage().hasText()) {

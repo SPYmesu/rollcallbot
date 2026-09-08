@@ -57,14 +57,15 @@ public class ReminderUtil {
                 processedReminders.add(finishKey);
             }
         } else {
-            checkReminder(rollcall, timeLeft, rollcallKey, TimeUnit.MINUTES.toMillis(30), "30min");
-            checkReminder(rollcall, timeLeft, rollcallKey, TimeUnit.MINUTES.toMillis(15), "15min");
-            checkReminder(rollcall, timeLeft, rollcallKey, TimeUnit.MINUTES.toMillis(5), "5min");
+            long timer = TimeUnit.MINUTES.toMillis(chat.settings.timer);
+            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(30), "30min");
+            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(15), "15min");
+            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(5), "5min");
         }
     }
 
-    private void checkReminder(Rollcall rollcall, long timeLeft, String rollcallKey, long reminderTime, String reminderType) {
-        if (timeLeft <= reminderTime) {
+    private void checkReminder(Rollcall rollcall, long timeLeft, long timer, String rollcallKey, long reminderTime, String reminderType) {
+        if (reminderTime < timer && timeLeft <= reminderTime) {
             String reminderKey = rollcallKey + "_" + reminderType;
             if (!processedReminders.contains(reminderKey)) {
                 processReminder(rollcall, reminderType);

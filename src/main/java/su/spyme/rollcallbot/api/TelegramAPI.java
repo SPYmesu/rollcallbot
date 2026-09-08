@@ -220,6 +220,10 @@ public class TelegramAPI {
         return chat.admins.contains(userId);
     }
 
+    public void answerInline(Update update) {
+        answerInline(update, null);
+    }
+
     public void answerInline(Update update, String text) {
         try {
             AnswerCallbackQuery answerCallbackQuery = AnswerCallbackQuery.builder()

@@ -143,7 +143,7 @@ public class SettingsHandler {
                 reading.put(user.getId(), setting + "☭" + chat.chatId + "☭" + messageId + "☭" + id + "☭" + userId);
             }
         }
-        telegramAPI.answerInline(update, "⏳");
+        telegramAPI.answerInline(update);
     }
 
     public boolean handleInput(Message message) {

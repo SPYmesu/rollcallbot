@@ -58,8 +58,7 @@ public class TelegramAPI {
                     .scope(BotCommandScopeAllChatAdministrators.builder().build())
                     .build());
         } catch (TelegramApiException ex) {
-            logger.error("Error while setBotCommands()");
-            ex.printStackTrace();
+            logger.error("Error while setBotCommands()", ex);
         }
     }
 
@@ -79,8 +78,7 @@ public class TelegramAPI {
             }
             return telegramClient.execute(sendMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while sendMessage({}, {})", chatId, messageThreadId);
-            ex.printStackTrace();
+            logger.error("Error while sendMessage({}, {})", chatId, messageThreadId, ex);
         }
         return null;
     }
@@ -106,8 +104,7 @@ public class TelegramAPI {
             }
             return telegramClient.execute(sendMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while sendMessageInline({}, {})", chatId, messageThreadId);
-            ex.printStackTrace();
+            logger.error("Error while sendMessageInline({}, {})", chatId, messageThreadId, ex);
         }
         return null;
     }
@@ -123,8 +120,7 @@ public class TelegramAPI {
                     .build();
             telegramClient.execute(editMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while editMessageText({}, {})", chatId, messageId);
-            ex.printStackTrace();
+            logger.error("Error while editMessageText({}, {})", chatId, messageId, ex);
         }
     }
 
@@ -137,8 +133,7 @@ public class TelegramAPI {
                     .build();
             telegramClient.execute(editMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while editMessageReplyMarkup({}, {})", chatId, messageId);
-            ex.printStackTrace();
+            logger.error("Error while editMessageReplyMarkup({}, {})", chatId, messageId, ex);
         }
     }
 
@@ -152,8 +147,7 @@ public class TelegramAPI {
                     .build();
             telegramClient.execute(editMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while editMessageText({}, {})", chatId, messageId);
-            ex.printStackTrace();
+            logger.error("Error while editMessageText({}, {})", chatId, messageId, ex);
         }
     }
 
@@ -165,8 +159,7 @@ public class TelegramAPI {
                     .build();
             telegramClient.execute(deleteMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while deleteMessage({}, {})", chatId, messageId);
-            ex.printStackTrace();
+            logger.error("Error while deleteMessage({}, {})", chatId, messageId, ex);
         }
     }
 
@@ -174,8 +167,7 @@ public class TelegramAPI {
         try {
             return telegramClient.execute(new GetChat(String.valueOf(chatId)));
         } catch (TelegramApiException ex) {
-            logger.error("Error while getChat({})", chatId);
-            ex.printStackTrace();
+            logger.error("Error while getChat({})", chatId, ex);
         }
         return null;
     }
@@ -190,8 +182,7 @@ public class TelegramAPI {
         try {
             chatAdministrators = telegramClient.execute(new GetChatAdministrators(String.valueOf(chatId)));
         } catch (TelegramApiException ex) {
-            logger.error("Error while getChatAdministrators({})", chatId);
-            ex.printStackTrace();
+            logger.error("Error while getChatAdministrators({})", chatId, ex);
         }
         return chatAdministrators;
     }

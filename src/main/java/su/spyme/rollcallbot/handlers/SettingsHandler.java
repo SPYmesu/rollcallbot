@@ -151,6 +151,10 @@ public class SettingsHandler {
         long userId = message.getFrom().getId();
         if (!reading.containsKey(userId)) return false;
         String toSet = message.getText();
+        if (toSet.startsWith("/") || toSet.startsWith(".")) {
+            reading.remove(userId);
+            return false;
+        }
         String metadata = reading.remove(userId);
         String[] split = metadata.split("☭");
         Chat chat = getChat(Long.parseLong(split[1]));

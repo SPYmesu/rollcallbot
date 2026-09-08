@@ -46,9 +46,9 @@ public class Main {
         loadAll();
         checkBirthdays();
         try {
+            telegramClient = new OkHttpTelegramClient(System.getenv("rollcall_bot_token"));
             TelegramBotsLongPollingApplication botsApplication = new TelegramBotsLongPollingApplication();
             botsApplication.registerBot(System.getenv("rollcall_bot_token"), new Bot());
-            telegramClient = new OkHttpTelegramClient(System.getenv("rollcall_bot_token"));
             telegramAPI.setBotCommands();
         } catch (TelegramApiException exception) {
             logger.error("Error in TelegramAPI: {}", exception.getMessage());
@@ -56,6 +56,7 @@ public class Main {
         for (Chat chat : chats) {
             updateChatAdmins(chat);
         }
+        new ReminderUtil().start();
     }
 
     public static void loadAll() {
@@ -126,7 +127,6 @@ public class Main {
                 saveChat(chat);
             }
             logger.info("Загружено {} чатов", chats.size());
-            new ReminderUtil().start();
         } catch (Exception exception) {
             logger.error("Error while loading...");
             throw new RuntimeException(exception);

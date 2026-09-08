@@ -4,16 +4,24 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
 @AllArgsConstructor
 public class ChatSettings {
-    public static final String DEFAULT_MESSAGE = "\uD83D\uDE4B Перекличка на наличие на паре";
-    public static final List<String> DEFAULT_BUTTONS = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
+    public static final String DEFAULT_MESSAGE = "🙋 Перекличка на наличие на паре";
     public int timer;
     public String message;
-    public List<String> buttonNames;
+    public Map<RollcallAnswer, String> buttons;
     public boolean birthdays;
+
+    public String getButton(RollcallAnswer answer) {
+        String text = buttons.get(answer);
+        return text == null || text.isBlank() ? answer.defaultButton : text;
+    }
+
+    public void setButton(RollcallAnswer answer, String text) {
+        buttons.put(answer, text);
+    }
 }

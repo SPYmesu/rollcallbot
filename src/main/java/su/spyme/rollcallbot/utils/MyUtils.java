@@ -13,6 +13,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -32,7 +33,7 @@ public class MyUtils {
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
                 String name = telegramAPI.getChatTitle(chatId);
                 if (name == null) return null;
-                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, ChatSettings.DEFAULT_MESSAGE, ChatSettings.DEFAULT_BUTTONS, true), new ArrayList<>(), new CopyOnWriteArrayList<>());
+                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, ChatSettings.DEFAULT_MESSAGE, new EnumMap<>(RollcallAnswer.class), true), new ArrayList<>(), new CopyOnWriteArrayList<>());
                 saveChat(chat);
             } catch (IOException ignored) {
             }
@@ -49,7 +50,10 @@ public class MyUtils {
         config.set("name", chat.name);
         config.set("settings.timer", chat.settings.timer);
         config.set("settings.message", chat.settings.message);
-        config.set("settings.buttonNames", chat.settings.buttonNames);
+        config.set("settings.buttonNames", null);
+        for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
+            config.set("settings.buttons." + answer.name(), chat.settings.getButton(answer));
+        }
         config.set("settings.birthdays", chat.settings.birthdays);
         config.set("students", null);
         for (Student student : chat.students) {
@@ -129,12 +133,14 @@ public class MyUtils {
     }
 
     public static InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {
-        List<String> buttons = chat.settings.buttonNames;
-        return InlineKeyboardMarkup.builder()
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(0) + " (" + rollcall.getCount(RollcallAnswer.HERE) + ")", "rollcall " + rollcall.rollcallMessageId + " here")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(1) + " (" + rollcall.getCount(RollcallAnswer.NOTHEREREASON) + ")", "rollcall " + rollcall.rollcallMessageId + " notherereason")))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(buttons.get(2) + " (" + rollcall.getCount(RollcallAnswer.NOTHERE) + ")", "rollcall " + rollcall.rollcallMessageId + " nothere")))
-                .build();
+        InlineKeyboardMarkup.InlineKeyboardMarkupBuilder<?, ?> builder = InlineKeyboardMarkup.builder();
+        for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
+            builder.keyboardRow(new InlineKeyboardRow(getInlineButton(
+                    chat.settings.getButton(answer) + " (" + rollcall.getCount(answer) + ")",
+                    "rollcall " + rollcall.rollcallMessageId + " " + answer.name().toLowerCase()
+            )));
+        }
+        return builder.build();
     }
 
     public static String getRollcallResult(Rollcall rollcall, List<Student> sortExample) {

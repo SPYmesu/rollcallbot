@@ -16,7 +16,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -114,14 +116,20 @@ public class Main {
                             entries
                     ));
                 }
+                Map<RollcallAnswer, String> buttons = new EnumMap<>(RollcallAnswer.class);
+                List<String> legacyButtons = chatConfig.getStringList("settings.buttonNames");
+                for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
+                    int legacyIndex = RollcallAnswer.BUTTONS.indexOf(answer);
+                    String legacyButton = legacyIndex < legacyButtons.size() ? legacyButtons.get(legacyIndex) : null;
+                    String button = chatConfig.getString("settings.buttons." + answer.name(), legacyButton);
+                    if (button != null) buttons.put(answer, button);
+                }
                 ChatSettings settings = new ChatSettings(
                         chatConfig.getInt("settings.timer", 60),
                         chatConfig.getString("settings.message", ChatSettings.DEFAULT_MESSAGE),
-                        chatConfig.getStringList("settings.buttonNames"),
+                        buttons,
                         chatConfig.getBoolean("settings.birthdays", true)
                 );
-                if (settings.buttonNames.isEmpty())
-                    settings.buttonNames = ChatSettings.DEFAULT_BUTTONS;
                 String name = chatConfig.getString("name", "");
                 Chat chat = new Chat(Long.parseLong(chatId), name, chatConfig, new ArrayList<>(), settings, chatStudents, chatRollcalls);
                 chats.add(chat);

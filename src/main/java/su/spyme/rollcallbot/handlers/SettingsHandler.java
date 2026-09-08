@@ -8,6 +8,7 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import su.spyme.rollcallbot.objects.Chat;
+import su.spyme.rollcallbot.objects.RollcallAnswer;
 import su.spyme.rollcallbot.objects.Student;
 
 import java.io.IOException;
@@ -196,12 +197,9 @@ public class SettingsHandler {
                     telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки чата");
                 }
             }
-            case "button0", "button1", "button2" -> {
+            case "buttonHERE", "buttonNOTHEREREASON", "buttonNOTHERE" -> {
                 try {
-                    int buttonNum = Integer.parseInt(split[0].substring("button".length()));
-                    List<String> buttons = new ArrayList<>(chat.settings.buttonNames);
-                    buttons.set(buttonNum, toSet);
-                    chat.settings.setButtonNames(buttons);
+                    chat.settings.setButton(RollcallAnswer.valueOf(split[0].substring("button".length())), toSet);
                     saveChat(chat);
                     telegramAPI.deleteMessage(chatId, infoMessage);
                     telegramAPI.editMessageReplyMarkup(chatId, menuId, getMessageSettingsInline(chat));
@@ -339,23 +337,18 @@ public class SettingsHandler {
     }
 
     private InlineKeyboardMarkup getMessageSettingsInline(Chat chat) {
-        return InlineKeyboardMarkup.builder()
+        InlineKeyboardMarkup.InlineKeyboardMarkupBuilder<?, ?> builder = InlineKeyboardMarkup.builder()
                 .keyboardRow(new InlineKeyboardRow(getInlineButton(
                         "ℹ Изменить сообщение",
                         "settings " + chat.chatId + " message text"
-                )))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(
-                        "✏: " + chat.settings.buttonNames.get(0),
-                        "settings " + chat.chatId + " message button0"
-                )))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(
-                        "✏: " + chat.settings.buttonNames.get(1),
-                        "settings " + chat.chatId + " message button1"
-                )))
-                .keyboardRow(new InlineKeyboardRow(getInlineButton(
-                        "✏: " + chat.settings.buttonNames.get(2),
-                        "settings " + chat.chatId + " message button2"
-                )))
+                )));
+        for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
+            builder.keyboardRow(new InlineKeyboardRow(getInlineButton(
+                    "✏: " + chat.settings.getButton(answer),
+                    "settings " + chat.chatId + " message button" + answer.name()
+            )));
+        }
+        return builder
                 .keyboardRow(new InlineKeyboardRow(getInlineButton(
                         "🔙 Назад",
                         "settings " + chat.chatId + " select"

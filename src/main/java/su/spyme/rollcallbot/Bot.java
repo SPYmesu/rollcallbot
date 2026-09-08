@@ -14,8 +14,6 @@ import su.spyme.rollcallbot.objects.*;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -422,21 +420,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             if (num < 1 || num > chat.students.size()) throw new NumberFormatException();
                             Student student = chat.students.get(num - 1);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.sendMessageInline(
-                                    chatId,
-                                    getStudentInline(chat, student),
-                                    """
-                                            👤 Управление студентом
-                                            
-                                            Позиция: %s
-                                            Имя: %s
-                                            Дата рождения %s
-                                            """.formatted(
-                                            chat.students.indexOf(student) + 1,
-                                            student.name,
-                                            student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
-                                    )
-                            );
+                            telegramAPI.sendMessageInline(chatId, getStudentInline(chat, student), getStudentMenu(chat, student));
                             return;
                         } catch (NumberFormatException ignored) {
                             if (split.length > 4) {
@@ -461,22 +445,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             chat.setStudents(students);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(
-                                    chatId,
-                                    menuId,
-                                    """
-                                            👤 Управление студентом
-                                            
-                                            Позиция: %s
-                                            Имя: %s
-                                            Дата рождения %s
-                                            """.formatted(
-                                            chat.students.indexOf(student) + 1,
-                                            student.name,
-                                            student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
-                                    ),
-                                    getStudentInline(chat, student)
-                            );
+                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (NumberFormatException ignored) {
                             if (split.length > 5) {
                                 reading.put(userId, metadata);
@@ -508,22 +477,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             student.setName(toSet);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(
-                                    chatId,
-                                    menuId,
-                                    """
-                                            👤 Управление студентом
-                                            
-                                            Позиция: %s
-                                            Имя: %s
-                                            Дата рождения %s
-                                            """.formatted(
-                                            chat.students.indexOf(student) + 1,
-                                            student.name,
-                                            student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
-                                    ),
-                                    getStudentInline(chat, student)
-                            );
+                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (IOException ignored1) {
                             sendError(chatId, 0, "Не удалось сохранить настройки студента");
                         }
@@ -547,22 +501,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             student.setBirthdate(instant);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(
-                                    chatId,
-                                    menuId,
-                                    """
-                                            👤 Управление студентом
-                                            
-                                            Позиция: %s
-                                            Имя: %s
-                                            Дата рождения %s
-                                            """.formatted(
-                                            chat.students.indexOf(student) + 1,
-                                            student.name,
-                                            student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
-                                    ),
-                                    getStudentInline(chat, student)
-                            );
+                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (IOException ignored1) {
                             sendError(chatId, 0, "Не удалось сохранить настройки студента");
                         }

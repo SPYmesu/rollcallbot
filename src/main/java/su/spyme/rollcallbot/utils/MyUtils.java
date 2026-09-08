@@ -7,8 +7,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -212,6 +214,20 @@ public class MyUtils {
         }
         sb.append("\nℹ Отправь номер студента, которого нужно изменить");
         return sb.toString();
+    }
+
+    public static String getStudentMenu(Chat chat, Student student) {
+        return """
+                👤 Управление студентом
+
+                Позиция: %s
+                Имя: %s
+                Дата рождения %s
+                """.formatted(
+                chat.students.indexOf(student) + 1,
+                student.name,
+                student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
+        );
     }
 
     public static InlineKeyboardMarkup getStudentInline(Chat chat, Student student) {

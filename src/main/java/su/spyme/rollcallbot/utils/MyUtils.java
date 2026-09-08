@@ -110,7 +110,8 @@ public class MyUtils {
         setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
     }
 
-    public static void finishRollcall(Chat chat, Rollcall rollcall) {
+    public static synchronized void finishRollcall(Chat chat, Rollcall rollcall) {
+        if (!chat.rollcalls.contains(rollcall)) return;
         telegramAPI.deleteMessage(rollcall.chatId, rollcall.rollcallMessageId);
         telegramAPI.deleteMessage(rollcall.chatId, rollcall.tagAllMessageId);
         removeRollcall(chat, rollcall);

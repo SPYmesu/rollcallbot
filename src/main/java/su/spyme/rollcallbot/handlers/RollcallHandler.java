@@ -1,5 +1,6 @@
 package su.spyme.rollcallbot.handlers;
 
+import org.simpleyaml.configuration.file.YamlFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -21,6 +22,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.tag;
 
 public class RollcallHandler {
     private static final Logger logger = LoggerFactory.getLogger(RollcallHandler.class);
+    private static final long ANSWER_CHANGE_DELAY = TimeUnit.MINUTES.toMillis(1);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     public void tagAll(Chat chat, int threadId) {
@@ -50,7 +52,7 @@ public class RollcallHandler {
             }
             List<RollcallEntry> entries = new ArrayList<>();
             for (Student student : students) {
-                entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0));
+                entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0, 0));
             }
             Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, System.currentTimeMillis(), entries);
             rollcall.setResultChatId(userId);
@@ -117,16 +119,27 @@ public class RollcallHandler {
                     telegramAPI.answerInline(update, "Ты не зарегистрирован, обратись к старосте");
                     return;
                 }
-                if (entry.answer != RollcallAnswer.IGNORE) {
-                    telegramAPI.answerInline(update, "Ты уже сделал свой выбор...");
-                    entry.addTimes();
-                    setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
+                YamlFile config = getChat(chatId).config;
+                String path = "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".";
+                entry.addTimes();
+                setAndSave(config, path + "times", entry.times);
+                RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[2]);
+                long now = System.currentTimeMillis();
+                if (entry.answer == answer) {
+                    telegramAPI.answerInline(update, "Ты уже выбрал этот вариант");
                     return;
                 }
-                RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[2]);
+                if (entry.answer != RollcallAnswer.IGNORE && now - entry.answerTime < ANSWER_CHANGE_DELAY) {
+                    long secondsLeft = (ANSWER_CHANGE_DELAY - (now - entry.answerTime)) / 1000 + 1;
+                    telegramAPI.answerInline(update, "Сменить ответ можно раз в минуту, подожди ещё " + secondsLeft + " сек.");
+                    return;
+                }
+                boolean changed = entry.answer != RollcallAnswer.IGNORE;
                 entry.answer = answer;
-                setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", answer.name());
-                telegramAPI.answerInline(update, "Спасибо за участие, уже передали ответ старосте.");
+                entry.answerTime = now;
+                config.set(path + "answer", answer.name());
+                setAndSave(config, path + "answerTime", now);
+                telegramAPI.answerInline(update, changed ? "Ответ изменён" : "Спасибо за участие, уже передали ответ старосте.");
             }
             default -> {
                 telegramAPI.answerInline(update, "Эта перекличка уже неактивна");

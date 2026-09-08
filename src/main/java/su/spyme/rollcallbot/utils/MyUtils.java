@@ -97,6 +97,7 @@ public class MyUtils {
         for (RollcallEntry entry : rollcall.entries) {
             chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", entry.answer.name());
             chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
+            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answerTime", entry.answerTime);
         }
         try {
             chat.config.save();

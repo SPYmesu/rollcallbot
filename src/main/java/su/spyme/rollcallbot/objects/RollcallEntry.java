@@ -11,6 +11,7 @@ public class RollcallEntry {
     public Student student;
     public RollcallAnswer answer;
     public int times;
+    public long answerTime;
 
     public void addTimes() {
         times++;

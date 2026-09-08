@@ -98,7 +98,8 @@ public class Main {
                         entries.add(new RollcallEntry(
                                 student,
                                 RollcallAnswer.valueOf(chatConfig.getString("rollcalls." + key + ".entries." + entryKey + ".answer")),
-                                chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times")
+                                chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times"),
+                                chatConfig.getLong("rollcalls." + key + ".entries." + entryKey + ".answerTime", 0)
                         ));
                     }
                     chatRollcalls.add(new Rollcall(

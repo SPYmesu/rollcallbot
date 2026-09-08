@@ -297,10 +297,15 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         }
 
                         try {
-                            Student student = new Student(targetId, targetName, instant);
-                            students.add(student);
+                            Student student = getStudent(students, targetId);
+                            if (student == null) {
+                                students.add(new Student(targetId, targetName, instant));
+                            } else {
+                                student.setName(targetName);
+                                student.setBirthdate(instant);
+                            }
                             saveChat(chat);
-                            telegramAPI.sendMessage(chatId, threadId, "Студент добавлен: " + targetName + " (" + targetId + ").");
+                            telegramAPI.sendMessage(chatId, threadId, (student == null ? "Студент добавлен: " : "Студент обновлён: ") + targetName + " (" + targetId + ").");
                         } catch (Exception exception) {
                             telegramAPI.sendMessage(chatId, threadId, "❌ При выполнении команды произошла ошибка: " + exception.getMessage());
                         }

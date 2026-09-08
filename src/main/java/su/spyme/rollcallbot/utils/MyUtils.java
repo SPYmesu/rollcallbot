@@ -1,6 +1,8 @@
 package su.spyme.rollcallbot.utils;
 
 import org.simpleyaml.configuration.file.YamlFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
@@ -21,6 +23,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.format;
 import static su.spyme.rollcallbot.utils.StringUtils.instantToString;
 
 public class MyUtils {
+    private static final Logger logger = LoggerFactory.getLogger(MyUtils.class);
 
     public static Chat getChat(long chatId) {
         Chat chat = chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
@@ -317,7 +320,6 @@ public class MyUtils {
         try {
             for (Chat chat : chats) {
                 if (!chat.settings.birthdays) continue;
-                YamlFile chatConfig = loadConfig(String.valueOf(chat.chatId));
                 for (Student student : chat.students) {
                     if (isBirthdayToday(student)) {
                         String message = "🎉 С днем рождения, " + format(student) + "! 🎂";
@@ -326,7 +328,7 @@ public class MyUtils {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("Error while checkBirthdays()", e);
         }
     }
 

@@ -16,19 +16,20 @@ repositories {
     maven("https://jitpack.io")
 }
 
-val telegramBotsVersion = "9.1.0"
-val log4jVersion = "2.23.1"
-val lombokVersion = "1.18.34"
+val telegramBotsVersion = "10.3.0"
+val log4jVersion = "2.26.1"
+val lombokVersion = "1.18.48"
 
 dependencies {
     implementation("org.telegram:telegrambots-longpolling:$telegramBotsVersion")
     implementation("org.telegram:telegrambots-client:$telegramBotsVersion")
     implementation("me.carleslc.Simple-YAML:Simple-Yaml:1.8.4")
-    implementation("org.slf4j:slf4j-api:2.0.12")
-    implementation("org.apache.logging.log4j:log4j-slf4j2-impl:$log4jVersion")
+    implementation("org.slf4j:slf4j-api:2.0.19")
+    implementation(platform("org.apache.logging.log4j:log4j-bom:$log4jVersion"))
+    implementation("org.apache.logging.log4j:log4j-slf4j2-impl")
     compileOnly("org.projectlombok:lombok:$lombokVersion")
     annotationProcessor("org.projectlombok:lombok:$lombokVersion")
-    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation(platform("org.junit:junit-bom:5.14.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

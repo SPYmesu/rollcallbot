@@ -2,7 +2,7 @@ package su.spyme.rollcallbot;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
+import org.telegram.telegrambots.longpolling.util.DefaultLongPollingUpdateConsumer;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import su.spyme.rollcallbot.handlers.RollcallHandler;
@@ -13,7 +13,7 @@ import su.spyme.rollcallbot.objects.Chat;
 import static su.spyme.rollcallbot.Main.telegramAPI;
 import static su.spyme.rollcallbot.utils.MyUtils.getChat;
 
-public class Bot implements LongPollingSingleThreadUpdateConsumer {
+public class Bot extends DefaultLongPollingUpdateConsumer {
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     private static final String HELP = """
             Помощь по командам:

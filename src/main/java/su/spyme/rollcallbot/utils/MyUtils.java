@@ -24,6 +24,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class MyUtils {
     private static final Logger logger = LoggerFactory.getLogger(MyUtils.class);
+    private static final int CLICKS_FOR_FUN_FACT = 5;
 
     public static Chat getChat(long chatId) {
         Chat chat = chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
@@ -33,7 +34,7 @@ public class MyUtils {
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
                 String name = telegramAPI.getChatTitle(chatId);
                 if (name == null) return null;
-                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, ChatSettings.DEFAULT_MESSAGE, new EnumMap<>(RollcallAnswer.class), true), new ArrayList<>(), new CopyOnWriteArrayList<>());
+                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(ChatSettings.DEFAULT_TIMER, ChatSettings.DEFAULT_MESSAGE, new EnumMap<>(RollcallAnswer.class), true), new ArrayList<>(), new CopyOnWriteArrayList<>());
                 saveChat(chat);
             } catch (IOException ignored) {
             }
@@ -125,7 +126,7 @@ public class MyUtils {
             for (RollcallEntry entry : rollcall.entries) {
                 if (entry.times > best.times) best = entry;
             }
-            if (best.times > 5)
+            if (best.times > CLICKS_FOR_FUN_FACT)
                 text.append("\n\nИнтересный факт: ").append(escapeMarkdown(best.student.name)).append(" кликнул на кнопку ").append(best.times).append(" раз!");
         }
         telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());

@@ -23,6 +23,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.tag;
 public class RollcallHandler {
     private static final Logger logger = LoggerFactory.getLogger(RollcallHandler.class);
     private static final long ANSWER_CHANGE_DELAY = TimeUnit.MINUTES.toMillis(1);
+    private static final int IGNORE_MESSAGE_LIFETIME_SECONDS = 120;
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     public void tagAll(Chat chat, int threadId) {
@@ -71,7 +72,7 @@ public class RollcallHandler {
             }
             rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
             String rollcallText = rollcall.text;
-            if (chat.settings.timer != -1) {
+            if (chat.settings.timer != ChatSettings.TIMER_OFF) {
                 rollcallText += "\n\n⏳ Перекличка завершится через " + chat.settings.timer + " мин.";
             }
             Message rollcallMessage = telegramAPI.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcallText);
@@ -106,7 +107,7 @@ public class RollcallHandler {
         telegramAPI.deleteMessage(chat.chatId, message.getMessageId());
         Message ignoreMessage = telegramAPI.sendMessage(chat.chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...");
         if (ignoreMessage != null) {
-            scheduler.schedule(() -> telegramAPI.deleteMessage(chat.chatId, ignoreMessage.getMessageId()), 120, TimeUnit.SECONDS);
+            scheduler.schedule(() -> telegramAPI.deleteMessage(chat.chatId, ignoreMessage.getMessageId()), IGNORE_MESSAGE_LIFETIME_SECONDS, TimeUnit.SECONDS);
         }
     }
 

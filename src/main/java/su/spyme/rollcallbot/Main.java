@@ -32,6 +32,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.*;
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
     public static final long OWNER_ID = 453460175L;
+    private static final int BIRTHDAY_CHECK_HOUR = 7;
     public static TelegramClient telegramClient;
     public static TelegramAPI telegramAPI = new TelegramAPI();
     public static YamlFile yamlFile;
@@ -130,7 +131,7 @@ public class Main {
                     if (button != null) buttons.put(answer, button);
                 }
                 ChatSettings settings = new ChatSettings(
-                        chatConfig.getInt("settings.timer", 60),
+                        chatConfig.getInt("settings.timer", ChatSettings.DEFAULT_TIMER),
                         chatConfig.getString("settings.message", ChatSettings.DEFAULT_MESSAGE),
                         buttons,
                         chatConfig.getBoolean("settings.birthdays", true)
@@ -149,13 +150,13 @@ public class Main {
 
     private static void scheduleBirthdayCheck() {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime nextRun = now.withHour(BIRTHDAY_CHECK_HOUR).withMinute(0).withSecond(0).withNano(0);
         if (now.isAfter(nextRun)) {
             nextRun = nextRun.plusDays(1);
         }
         Executors.newScheduledThreadPool(1).scheduleAtFixedRate(MyUtils::checkBirthdays,
                 Duration.between(now, nextRun).toMillis(),
-                24 * 60 * 60 * 1000,
+                TimeUnit.DAYS.toMillis(1),
                 TimeUnit.MILLISECONDS);
     }
 }

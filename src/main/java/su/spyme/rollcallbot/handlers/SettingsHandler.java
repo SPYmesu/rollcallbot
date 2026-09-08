@@ -7,6 +7,7 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import su.spyme.rollcallbot.handlers.PendingInput.Setting;
 import su.spyme.rollcallbot.objects.Chat;
+import su.spyme.rollcallbot.objects.ChatSettings;
 import su.spyme.rollcallbot.objects.RollcallAnswer;
 import su.spyme.rollcallbot.objects.Student;
 
@@ -16,12 +17,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.MyUtils.*;
 import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class SettingsHandler {
+    private static final long UPDATE_CHAT_COOLDOWN = TimeUnit.HOURS.toMillis(1);
+    private static final String TIMER_PROMPT = """
+            Отправьте время, через которое вы хотите автоматически завершать перекличку.
+            Это число в минутах от %d до %d или %d, если вы хотите отключить эту функцию.
+            """.formatted(ChatSettings.TIMER_MIN, ChatSettings.TIMER_MAX, ChatSettings.TIMER_OFF);
     private final Map<Long, PendingInput> reading = new HashMap<>();
     private final Map<Chat, Long> cooldowns = new HashMap<>();
 
@@ -71,10 +78,7 @@ public class SettingsHandler {
                 );
             }
             case "timer" -> {
-                int id = telegramAPI.sendMessage(chatId, """
-                        Отправьте время, через которое вы хотите автоматически завершать перекличку.
-                        Это число в минутах от 30 до 90 или -1, если вы хотите отключить эту функцию.
-                        """).getMessageId();
+                int id = telegramAPI.sendMessage(chatId, TIMER_PROMPT).getMessageId();
                 reading.put(user.getId(), new PendingInput(Setting.TIMER, chat, messageId, id));
             }
             case "birthdays" -> {
@@ -89,7 +93,7 @@ public class SettingsHandler {
             case "updatechat" -> {
                 if (cooldowns.containsKey(chat)) {
                     long cd = cooldowns.get(chat);
-                    if (System.currentTimeMillis() - cd >= 60 * 60 * 1000) {
+                    if (System.currentTimeMillis() - cd >= UPDATE_CHAT_COOLDOWN) {
                         cooldowns.remove(chat);
                     } else {
                         telegramAPI.answerInline(update, "❌ Обновить информацию можно не чаще, чем раз в час");
@@ -185,8 +189,8 @@ public class SettingsHandler {
         switch (input.setting()) {
             case TIMER -> {
                 Integer timer = parseInt(text);
-                if (timer == null || (timer != -1 && (timer < 30 || timer > 90))) {
-                    return "❗️ Нужно число от 30 до 90 или -1, чтобы отключить автозавершение.";
+                if (timer == null || (timer != ChatSettings.TIMER_OFF && (timer < ChatSettings.TIMER_MIN || timer > ChatSettings.TIMER_MAX))) {
+                    return "❗️ Нужно число от %d до %d или %d, чтобы отключить автозавершение.".formatted(ChatSettings.TIMER_MIN, ChatSettings.TIMER_MAX, ChatSettings.TIMER_OFF);
                 }
                 chat.settings.setTimer(timer);
                 saveChat(chat);
@@ -260,7 +264,7 @@ public class SettingsHandler {
     private InlineKeyboardMarkup getSettingsInline(Chat chat) {
         return InlineKeyboardMarkup.builder()
                 .keyboardRow(new InlineKeyboardRow(getInlineButton(
-                        "⏳ Автозавершение: " + (chat.settings.timer == -1 ? "выкл." : chat.settings.timer + " мин."),
+                        "⏳ Автозавершение: " + (chat.settings.timer == ChatSettings.TIMER_OFF ? "выкл." : chat.settings.timer + " мин."),
                         "settings " + chat.chatId + " timer"
                 )))
                 .keyboardRow(new InlineKeyboardRow(getInlineButton(

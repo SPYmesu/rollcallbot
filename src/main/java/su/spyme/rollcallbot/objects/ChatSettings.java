@@ -11,6 +11,10 @@ import java.util.Map;
 @AllArgsConstructor
 public class ChatSettings {
     public static final String DEFAULT_MESSAGE = "🙋 Перекличка на наличие на паре";
+    public static final int DEFAULT_TIMER = 60;
+    public static final int TIMER_MIN = 30;
+    public static final int TIMER_MAX = 90;
+    public static final int TIMER_OFF = -1;
     public int timer;
     public String message;
     public Map<RollcallAnswer, String> buttons;

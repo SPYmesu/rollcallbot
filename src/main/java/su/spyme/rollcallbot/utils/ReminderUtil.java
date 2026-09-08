@@ -20,6 +20,8 @@ import static su.spyme.rollcallbot.utils.StringUtils.tag;
 public class ReminderUtil {
     private static final Logger logger = LoggerFactory.getLogger(ReminderUtil.class);
     private static final int[] REMINDERS = {5, 15, 30};
+    private static final int REMINDER_LIFETIME_SECONDS = 120;
+    private static final long PROCESSED_KEEP_TIME = TimeUnit.HOURS.toMillis(24);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Set<String> processedReminders = new HashSet<>();
 
@@ -47,7 +49,7 @@ public class ReminderUtil {
             finishRollcall(chat, rollcall);
             return;
         }
-        if (chat.settings.timer == -1) return;
+        if (chat.settings.timer == ChatSettings.TIMER_OFF) return;
         long finishTime = rollcall.startTime + TimeUnit.MINUTES.toMillis(chat.settings.timer);
         long timeLeft = finishTime - currentTime;
         String rollcallKey = rollcall.chatId + "_" + rollcall.threadId + "_" + rollcall.startTime;
@@ -79,12 +81,12 @@ public class ReminderUtil {
         if (ignore.isEmpty()) return;
         Message ignoreMessage = telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, tag(ignore) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...\n⌛ Осталось " + minutesLeft + " минут.");
         if (ignoreMessage != null) {
-            scheduler.schedule(() -> telegramAPI.deleteMessage(rollcall.chatId, ignoreMessage.getMessageId()), 120, TimeUnit.SECONDS);
+            scheduler.schedule(() -> telegramAPI.deleteMessage(rollcall.chatId, ignoreMessage.getMessageId()), REMINDER_LIFETIME_SECONDS, TimeUnit.SECONDS);
         }
     }
 
     private void cleanupOldReminders() {
-        long dayAgo = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(24);
+        long dayAgo = System.currentTimeMillis() - PROCESSED_KEEP_TIME;
         processedReminders.removeIf(key -> {
             try {
                 String[] parts = key.split("_");

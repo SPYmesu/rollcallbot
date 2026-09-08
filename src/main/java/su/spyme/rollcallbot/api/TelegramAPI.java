@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static su.spyme.rollcallbot.Main.OWNER_ID;
 import static su.spyme.rollcallbot.Main.telegramClient;
 
 public class TelegramAPI {
@@ -193,8 +194,8 @@ public class TelegramAPI {
     public boolean isAdmin(long chatId, long userId) {
         Chat chat = MyUtils.getChat(chatId);
         if (chat.admins.isEmpty())
-            return getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == 453460175L;
-        return chat.admins.contains(userId) || userId == 453460175L;
+            return getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == OWNER_ID;
+        return chat.admins.contains(userId) || userId == OWNER_ID;
     }
 
     public void answerInline(Update update, String text) {

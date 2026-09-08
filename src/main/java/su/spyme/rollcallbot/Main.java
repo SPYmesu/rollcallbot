@@ -29,6 +29,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
+    public static final long OWNER_ID = 453460175L;
     public static TelegramClient telegramClient;
     public static TelegramAPI telegramAPI = new TelegramAPI();
     public static YamlFile yamlFile;

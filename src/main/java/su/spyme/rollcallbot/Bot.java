@@ -21,8 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static su.spyme.rollcallbot.Main.chats;
-import static su.spyme.rollcallbot.Main.telegramAPI;
+import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
 import static su.spyme.rollcallbot.utils.MyUtils.*;
 import static su.spyme.rollcallbot.utils.StringUtils.*;
@@ -99,7 +98,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                 }
                 case "settings" -> {
                     Chat chat = getChat(Long.parseLong(callDataArray[1]));
-                    if (chat == null || !chat.admins.contains(user.getId())) {
+                    if (chat == null || (!chat.admins.contains(user.getId()) && user.getId() != OWNER_ID)) {
                         telegramAPI.answerInline(update, "У вас нет прав на управление этим чатом");
                         return;
                     }
@@ -520,7 +519,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             switch (command) {
                 case "settings", "настройки" -> {
                     if (!update.getMessage().isUserMessage()) return;
-                    List<Chat> myChats = chats.stream().filter(it -> it.admins.contains(userId)).toList();
+                    List<Chat> myChats = chats.stream().filter(it -> it.admins.contains(userId) || userId == OWNER_ID).toList();
                     if (myChats.isEmpty()) return;
                     InlineKeyboardMarkup.InlineKeyboardMarkupBuilder<?, ?> builder = InlineKeyboardMarkup.builder();
                     for (Chat myChat : myChats) {

@@ -115,12 +115,12 @@ public class RollcallHandler {
         long chatId = update.getCallbackQuery().getMessage().getChatId();
         User user = update.getCallbackQuery().getFrom();
         Rollcall rollcall = getRollcallById(chatId, Integer.parseInt(callDataArray[1]));
+        if (rollcall == null) {
+            telegramAPI.answerInline(update, "Эта перекличка уже неактивна");
+            return;
+        }
         switch (callDataArray[2]) {
             case "here", "notherereason", "nothere" -> {
-                if (rollcall == null) {
-                    telegramAPI.answerInline(update, "Эта перекличка уже неактивна");
-                    return;
-                }
                 RollcallEntry entry = rollcall.entries.stream().filter(it -> it.student.userId == user.getId()).findAny().orElse(null);
                 if (entry == null) {
                     telegramAPI.answerInline(update, "Ты не зарегистрирован, обратись к старосте");
@@ -149,8 +149,9 @@ public class RollcallHandler {
                 telegramAPI.answerInline(update, changed ? "Ответ изменён" : "Спасибо за участие, уже передали ответ старосте.");
             }
             default -> {
-                telegramAPI.answerInline(update, "Эта перекличка уже неактивна");
+                telegramAPI.answerInline(update);
                 logger.warn("Unhandled callback query {}", String.join(" ", callDataArray));
+                return;
             }
         }
         telegramAPI.editMessageReplyMarkup(chatId, messageId, getRollcallInline(getChat(chatId), rollcall));

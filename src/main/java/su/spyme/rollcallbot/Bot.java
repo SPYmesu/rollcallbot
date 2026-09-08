@@ -286,7 +286,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     if (!telegramAPI.isAdmin(chatId, userId)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall == null) {
-                        sendError(chatId, threadId, "rollcall == null;");
+                        sendError(chatId, threadId, "❌ В этом чате нет активной переклички");
                         return;
                     }
                     telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
@@ -325,7 +325,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             telegramAPI.sendMessage(chatId, threadId, "❌ При выполнении команды произошла ошибка: " + exception.getMessage());
                         }
                     } else {
-                        sendError(chatId, threadId, "Message.getForwardFrom() == null;");
+                        sendError(chatId, threadId, "❌ Команду нужно отправить ответом на сообщение студента");
                     }
                 }
                 case "ignore", "игнор" -> {

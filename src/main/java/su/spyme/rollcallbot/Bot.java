@@ -300,10 +300,8 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
 
                         try {
                             Student student = new Student(targetId, targetName, instant);
-                            chat.config.set("students." + targetId + ".name", student.name);
-                            chat.config.set("students." + targetId + ".birthdate", instantToString(student.birthdate));
-                            chat.config.save();
                             students.add(student);
+                            saveChat(chat);
                             telegramAPI.sendMessage(chatId, threadId, "Студент добавлен: " + targetName + " (" + targetId + ").");
                         } catch (Exception exception) {
                             telegramAPI.sendMessage(chatId, threadId, "❌ При выполнении команды произошла ошибка: " + exception.getMessage());

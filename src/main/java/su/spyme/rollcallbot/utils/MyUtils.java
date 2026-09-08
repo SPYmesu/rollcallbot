@@ -18,6 +18,7 @@ import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
 import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
 import static su.spyme.rollcallbot.utils.StringUtils.format;
+import static su.spyme.rollcallbot.utils.StringUtils.instantToString;
 
 public class MyUtils {
 
@@ -47,6 +48,11 @@ public class MyUtils {
         config.set("settings.message", chat.settings.message);
         config.set("settings.buttonNames", chat.settings.buttonNames);
         config.set("settings.birthdays", chat.settings.birthdays);
+        config.set("students", null);
+        for (Student student : chat.students) {
+            config.set("students." + student.userId + ".name", student.name);
+            config.set("students." + student.userId + ".birthdate", instantToString(student.birthdate));
+        }
         config.save();
     }
 

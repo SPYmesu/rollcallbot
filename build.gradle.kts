@@ -55,4 +55,17 @@ tasks.shadowJar {
     manifest {
         attributes["Main-Class"] = "su.spyme.rollcallbot.Main"
     }
+    exclude(
+        "META-INF/maven/**", "META-INF/versions/**", "META-INF/proguard/**", "META-INF/native-image/**",
+        "META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/DEPENDENCIES", "META-INF/*-LICENSE",
+        "META-INF/*.kotlin_module", "**/*.kotlin_builtins", "module-info.class"
+    )
+    dependencies {
+        exclude(dependency("org.checkerframework:checker-qual:.*"))
+        exclude(dependency("org.jetbrains:annotations:.*"))
+    }
+    minimize {
+        // log4j загружает appenders и плагины по Log4j2Plugins.dat, статически на них никто не ссылается
+        exclude(dependency("org.apache.logging.log4j:.*:.*"))
+    }
 }

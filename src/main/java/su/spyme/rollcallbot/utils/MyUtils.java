@@ -10,7 +10,6 @@ import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -208,13 +207,13 @@ public class MyUtils {
     }
 
     public static boolean hasBirthdate(Student student) {
-        return student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate().isAfter(LocalDate.EPOCH);
+        return student.birthdate.atZone(ZONE).toLocalDate().isAfter(LocalDate.EPOCH);
     }
 
     public static boolean isBirthdayToday(Student student) {
         if (!hasBirthdate(student)) return false;
-        LocalDate today = LocalDate.now();
-        LocalDate birthDate = student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate today = LocalDate.now(ZONE);
+        LocalDate birthDate = student.birthdate.atZone(ZONE).toLocalDate();
         return birthDate.getMonth() == today.getMonth() &&
                 birthDate.getDayOfMonth() == today.getDayOfMonth();
     }

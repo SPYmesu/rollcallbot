@@ -14,7 +14,8 @@ import su.spyme.rollcallbot.utils.ReminderUtil;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -32,6 +33,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.*;
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
     public static final long OWNER_ID = 453460175L;
+    public static final ZoneId ZONE = loadZone();
     private static final int BIRTHDAY_CHECK_HOUR = 7;
     public static TelegramClient telegramClient;
     public static TelegramAPI telegramAPI = new TelegramAPI();
@@ -148,9 +150,14 @@ public class Main {
         }
     }
 
+    private static ZoneId loadZone() {
+        String zone = System.getenv("rollcall_bot_timezone");
+        return zone == null || zone.isBlank() ? ZoneId.systemDefault() : ZoneId.of(zone);
+    }
+
     private static void scheduleBirthdayCheck() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime nextRun = now.withHour(BIRTHDAY_CHECK_HOUR).withMinute(0).withSecond(0).withNano(0);
+        ZonedDateTime now = ZonedDateTime.now(ZONE);
+        ZonedDateTime nextRun = now.withHour(BIRTHDAY_CHECK_HOUR).withMinute(0).withSecond(0).withNano(0);
         if (now.isAfter(nextRun)) {
             nextRun = nextRun.plusDays(1);
         }

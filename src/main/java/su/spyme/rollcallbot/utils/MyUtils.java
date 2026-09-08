@@ -327,7 +327,6 @@ public class MyUtils {
                 .builder()
                 .text(text)
                 .callbackData(callback)
-                .switchInlineQueryCurrentChat(callback)
                 .build();
     }
 

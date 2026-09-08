@@ -1,5 +1,6 @@
 package su.spyme.rollcallbot.handlers;
 
+import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import su.spyme.rollcallbot.objects.Chat;
 import su.spyme.rollcallbot.objects.Student;
@@ -21,7 +22,12 @@ public class StudentHandler {
             telegramAPI.sendError(chatId, threadId, "❌ Команду нужно отправить ответом на сообщение студента");
             return;
         }
-        long targetId = message.getReplyToMessage().getFrom().getId();
+        User target = message.getReplyToMessage().getFrom();
+        if (Boolean.TRUE.equals(target.getIsBot())) {
+            telegramAPI.sendMessage(chatId, threadId, "❌ Нужно ответить на сообщение студента, а не бота");
+            return;
+        }
+        long targetId = target.getId();
         if (args.length < 3) {
             telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
             return;

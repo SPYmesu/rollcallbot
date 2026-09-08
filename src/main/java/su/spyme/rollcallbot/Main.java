@@ -38,7 +38,7 @@ public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         Thread inputThread = new Thread(() -> {
-            while (true) if (scanner.nextLine().trim().equalsIgnoreCase("stop")) System.exit(0);
+            while (scanner.hasNextLine()) if (scanner.nextLine().trim().equalsIgnoreCase("stop")) System.exit(0);
         });
         inputThread.setDaemon(true);
         inputThread.start();

@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.Main.chats;
@@ -31,6 +32,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     public static Map<Long, String> reading = new HashMap<>();
     public static Map<Chat, Long> cooldowns = new HashMap<>();
+    private static final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private static final String HELP = """
             Помощь по командам:
 
@@ -327,8 +329,10 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
                         telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());
-                        int ignoreMessageId = telegramAPI.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...").getMessageId();
-                        Executors.newSingleThreadScheduledExecutor().schedule(() -> telegramAPI.deleteMessage(chatId, ignoreMessageId), 120, TimeUnit.SECONDS);
+                        Message ignoreMessage = telegramAPI.sendMessage(chatId, threadId, tag(rollcall.getStudents(RollcallAnswer.IGNORE)) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...");
+                        if (ignoreMessage != null) {
+                            scheduler.schedule(() -> telegramAPI.deleteMessage(chatId, ignoreMessage.getMessageId()), 120, TimeUnit.SECONDS);
+                        }
                     }
                 }
                 case "help", "помощь" -> {

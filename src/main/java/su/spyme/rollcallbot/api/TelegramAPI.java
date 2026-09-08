@@ -17,6 +17,8 @@ import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScope
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeAllPrivateChats;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import su.spyme.rollcallbot.objects.Chat;
 import su.spyme.rollcallbot.utils.MyUtils;
@@ -103,6 +105,24 @@ public class TelegramAPI {
             logger.error("Error while sendMessageInline({}, {})", chatId, messageThreadId, ex);
         }
         return null;
+    }
+
+    public void sendError(long chatId, int threadId, String error) {
+        sendMessageInline(
+                chatId,
+                threadId,
+                InlineKeyboardMarkup.builder()
+                        .keyboardRow(
+                                new InlineKeyboardRow(InlineKeyboardButton
+                                        .builder()
+                                        .text("Сообщить разработчику - @SPY_mesu")
+                                        .url("https://t.me/SPY_mesu")
+                                        .build()
+                                )
+                        )
+                        .build(),
+                error + "\nУверен, что сделал всё правильно? Если да:\n"
+        );
     }
 
     public void editMessageText(long chatId, int messageId, String text, InlineKeyboardMarkup inline) {

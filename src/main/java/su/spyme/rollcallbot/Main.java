@@ -115,12 +115,12 @@ public class Main {
                 }
                 ChatSettings settings = new ChatSettings(
                         chatConfig.getInt("settings.timer", 60),
-                        chatConfig.getString("settings.message", "\uD83D\uDE4B Перекличка на наличие на паре"),
+                        chatConfig.getString("settings.message", ChatSettings.DEFAULT_MESSAGE),
                         chatConfig.getStringList("settings.buttonNames"),
                         chatConfig.getBoolean("settings.birthdays", true)
                 );
                 if (settings.buttonNames.isEmpty())
-                    settings.buttonNames = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
+                    settings.buttonNames = ChatSettings.DEFAULT_BUTTONS;
                 String name = chatConfig.getString("name", "");
                 Chat chat = new Chat(Long.parseLong(chatId), name, chatConfig, new ArrayList<>(), settings, chatStudents, chatRollcalls);
                 chats.add(chat);

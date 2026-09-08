@@ -10,6 +10,8 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 public class ChatSettings {
+    public static final String DEFAULT_MESSAGE = "\uD83D\uDE4B Перекличка на наличие на паре";
+    public static final List<String> DEFAULT_BUTTONS = List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре");
     public int timer;
     public String message;
     public List<String> buttonNames;

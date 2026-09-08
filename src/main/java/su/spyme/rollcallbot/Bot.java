@@ -364,6 +364,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     case "timer" -> {
                         try {
                             int timer = Integer.parseInt(toSet);
+                            if (timer != -1 && (timer < 30 || timer > 90)) throw new NumberFormatException();
                             chat.settings.setTimer(timer);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);

@@ -269,6 +269,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         }
                         rollcall.setRollcallMessageId(rollcallMessage.getMessageId());
                         telegramAPI.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(chat, rollcall));
+                        telegramAPI.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, students));
                         addRollcall(chat, rollcall);
                     } catch (Exception exception) {
                         sendError(chatId, threadId, "❌ При запуске переклички произошла ошибка:\n" + exception.getMessage());

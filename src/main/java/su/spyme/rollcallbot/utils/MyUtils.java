@@ -29,7 +29,6 @@ public class MyUtils {
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
                 String name = telegramAPI.getChat(chatId).getTitle();
                 chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new CopyOnWriteArrayList<>());
-                chats.add(chat);
                 saveChat(chat);
             } catch (IOException ignored) {
             }

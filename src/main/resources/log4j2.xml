@@ -1,16 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
+    <Properties>
+        <Property name="pattern">[%d{dd.MM-HH:mm:ss}-%t] %logger{36} %-5level » %msg%n</Property>
+    </Properties>
+
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="[%d{dd.MM-HH:mm:ss}-%t] %logger{36} %-5level » %msg%n"/>
+            <PatternLayout pattern="${pattern}"/>
         </Console>
+        <RollingFile name="File" fileName="logs/rollcallbot.log" filePattern="logs/rollcallbot-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="${pattern}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+            <DefaultRolloverStrategy>
+                <Delete basePath="logs" maxDepth="1">
+                    <IfFileName glob="rollcallbot-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
     </Appenders>
 
     <Loggers>
         <Root level="info">
             <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
         </Root>
 
-        <Logger name="org.telegram" level="WARN" additivity="false"/>
+        <Logger name="org.telegram" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
     </Loggers>
 </Configuration>

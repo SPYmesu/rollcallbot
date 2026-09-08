@@ -4,6 +4,7 @@
 /.gradle
 /out
 /storage
+/logs
 /.idea/*
 !/.idea/runConfigurations/
 !/.idea/codeStyles/

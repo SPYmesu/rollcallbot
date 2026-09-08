@@ -4,6 +4,7 @@ log4j = "2.26.1"
 slf4j = "2.0.19"
 lombok = "1.18.48"
 junit = "5.14.4"
+mockito = "5.23.0"
 jackson = "2.22.2"
 shadow = "9.6.1"
 
@@ -22,3 +23,4 @@ lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }

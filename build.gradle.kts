@@ -16,6 +16,8 @@ repositories {
     mavenCentral()
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 dependencies {
     implementation(libs.telegrambots.longpolling)
     implementation(libs.telegrambots.client)
@@ -29,6 +31,8 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.launcher)
+    testImplementation(libs.mockito.core)
+    mockitoAgent(libs.mockito.core) { isTransitive = false }
 }
 
 tasks.withType<JavaCompile> {
@@ -37,6 +41,8 @@ tasks.withType<JavaCompile> {
 
 tasks.test {
     useJUnitPlatform()
+    val agentPath = mockitoAgent.elements.map { it.single().asFile.absolutePath }
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-javaagent:${agentPath.get()}", "-Xshare:off") })
 }
 
 tasks.jar {

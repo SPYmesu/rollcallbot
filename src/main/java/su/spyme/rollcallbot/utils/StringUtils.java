@@ -2,6 +2,8 @@ package su.spyme.rollcallbot.utils;
 
 import su.spyme.rollcallbot.objects.Student;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +13,12 @@ public class StringUtils {
 
     public static String instantToString(Instant instant) {
         return DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(instant);
+    }
+
+    public static Instant parseDate(String date) throws ParseException {
+        SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy");
+        format.setLenient(false);
+        return format.parse(date).toInstant();
     }
 
     public static String tag(List<Student> students) {

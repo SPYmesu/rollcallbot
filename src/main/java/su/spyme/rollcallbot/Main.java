@@ -12,7 +12,6 @@ import su.spyme.rollcallbot.objects.*;
 import su.spyme.rollcallbot.utils.MyUtils;
 import su.spyme.rollcallbot.utils.ReminderUtil;
 
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -26,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import static su.spyme.rollcallbot.utils.ConfigUtils.getKeys;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
 import static su.spyme.rollcallbot.utils.MyUtils.*;
-import static su.spyme.rollcallbot.utils.StringUtils.instantToString;
+import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -75,7 +74,7 @@ public class Main {
                         student = new Student(
                                 Long.parseLong(key),
                                 chatConfig.getString("students." + key + ".name"),
-                                new SimpleDateFormat("dd.MM.yyyy").parse(chatConfig.getString("students." + key + ".birthdate", "01.01.1970")).toInstant()
+                                parseDate(chatConfig.getString("students." + key + ".birthdate", "01.01.1970"))
                         );
                     } else {
                         student = new Student(Long.parseLong(key), chatConfig.getString("students." + key), Instant.EPOCH);

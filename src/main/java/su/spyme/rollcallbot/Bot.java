@@ -12,7 +12,6 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -299,7 +298,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         String targetName = getArguments(2, args);
                         Instant instant = null;
                         try {
-                            instant = new SimpleDateFormat("dd.MM.yyyy").parse(args[1]).toInstant();
+                            instant = parseDate(args[1]);
                         } catch (Exception ignored) {
                         }
                         if (targetName.split(" ").length < 2 || instant == null) {
@@ -485,7 +484,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     case "birthdate" -> {
                         Instant instant;
                         try {
-                            instant = new SimpleDateFormat("dd.MM.yyyy").parse(toSet).toInstant();
+                            instant = parseDate(toSet);
                         } catch (Exception ignored) {
                             reading.put(userId, metadata);
                             telegramAPI.sendMessage(chatId, "❌ Нужно указать дату в формате дд.ММ.гггг (01.12.2012)");

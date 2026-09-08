@@ -1,8 +1,7 @@
 # Project exclude paths
-dependency-reduced-pom.xml
 *.iml
-/target
-/target/classes/META-INF/MANIFEST.MF
+/build
+/.gradle
 /out
 /storage
 /.idea/*

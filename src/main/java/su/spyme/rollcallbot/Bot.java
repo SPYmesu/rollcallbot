@@ -220,8 +220,6 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             long chatId = update.getMessage().getChatId();
             int threadId = (update.getMessage().getChat().getIsForum() != null && update.getMessage().getChat().getIsForum() && update.getMessage().getMessageThreadId() != null) ? update.getMessage().getMessageThreadId() : 0;
             long userId = update.getMessage().getFrom().getId();
-            Chat chat = getChat(chatId);
-            List<Student> students = chat.students;
             String command = args[0].toLowerCase().replaceFirst("^\\.", "/");
             if (!command.startsWith("/")) return;
             command = command.substring(1);
@@ -229,6 +227,9 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                 command = command.substring(0, command.indexOf('@'));
             }
             if (command.isEmpty()) return;
+            Chat chat = getChat(chatId);
+            if (chat == null) return;
+            List<Student> students = chat.students;
             switch (command) {
                 case "all", "позвать", "все" -> {
                     if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;

@@ -44,7 +44,7 @@ public class Main {
         inputThread.start();
 
         loadAll();
-        checkBirthdays();
+        scheduleBirthdayCheck();
         try {
             telegramClient = new OkHttpTelegramClient(System.getenv("rollcall_bot_token"));
             TelegramBotsLongPollingApplication botsApplication = new TelegramBotsLongPollingApplication();
@@ -133,7 +133,7 @@ public class Main {
         }
     }
 
-    private static void checkBirthdays() {
+    private static void scheduleBirthdayCheck() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime nextRun = now.withHour(7).withMinute(0).withSecond(0).withNano(0);
         if (now.isAfter(nextRun)) {

@@ -65,6 +65,7 @@ public class RollcallHandler {
             telegramAPI.deleteMessage(chatId, message.getMessageId());
             Message tagAllMessage = telegramAPI.sendMessage(chatId, threadId, tag(students));
             if (tagAllMessage == null) {
+                telegramAPI.deleteMessage(userId, rollcall.resultMessageId);
                 telegramAPI.sendError(chatId, threadId, "❌ Не удалось отправить сообщение с упоминанием студентов");
                 return;
             }
@@ -75,6 +76,8 @@ public class RollcallHandler {
             }
             Message rollcallMessage = telegramAPI.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcallText);
             if (rollcallMessage == null) {
+                telegramAPI.deleteMessage(chatId, rollcall.tagAllMessageId);
+                telegramAPI.deleteMessage(userId, rollcall.resultMessageId);
                 telegramAPI.sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
                 return;
             }

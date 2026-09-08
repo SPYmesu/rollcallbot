@@ -231,6 +231,10 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             switch (command) {
                 case "all", "позвать", "все" -> {
                     if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                    if (students.isEmpty()) {
+                        telegramAPI.sendMessage(chatId, threadId, "❌ В этом чате нет студентов, добавьте их командой `.студент`");
+                        return;
+                    }
                     telegramAPI.sendMessage(chatId, threadId, tag(students));
                 }
                 case "rollcall", "перекличка", "п" -> {
@@ -238,6 +242,10 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
                         if (getRollcallByThread(chat, threadId) != null) {
                             telegramAPI.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
+                            return;
+                        }
+                        if (students.isEmpty()) {
+                            telegramAPI.sendMessage(chatId, threadId, "❌ В этом чате нет студентов, добавьте их командой `.студент`");
                             return;
                         }
                         String text = chat.settings.message;

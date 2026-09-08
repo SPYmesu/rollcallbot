@@ -1,5 +1,6 @@
 plugins {
     java
+    alias(libs.plugins.shadow)
 }
 
 group = "su.spyme"
@@ -39,11 +40,14 @@ tasks.test {
 }
 
 tasks.jar {
+    enabled = false
+}
+
+tasks.shadowJar {
     archiveFileName = "RollcallBot.jar"
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
     manifest {
         attributes["Main-Class"] = "su.spyme.rollcallbot.Main"
     }
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
-    exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA", "module-info.class")
 }

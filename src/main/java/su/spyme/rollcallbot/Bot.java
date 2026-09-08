@@ -442,6 +442,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         try {
                             long studentId = Long.parseLong(split[4]);
                             int pos = Integer.parseInt(toSet);
+                            if (pos < 1 || pos > chat.students.size()) throw new NumberFormatException();
                             List<Student> students = new ArrayList<>(chat.students);
                             Student student = students.stream().filter(it -> it.userId == studentId).findFirst().orElse(null);
                             if (student == null) return;

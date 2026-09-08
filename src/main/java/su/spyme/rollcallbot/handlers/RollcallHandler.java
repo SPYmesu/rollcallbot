@@ -54,13 +54,13 @@ public class RollcallHandler {
                 entries.add(new RollcallEntry(student, RollcallAnswer.IGNORE, 0, 0));
             }
             Rollcall rollcall = new Rollcall(chatId, threadId, 0, 0, 0L, 0, text, System.currentTimeMillis(), entries);
-            rollcall.setResultChatId(userId);
+            rollcall.resultChatId = userId;
             Message resultMessage = telegramAPI.sendMessage(userId, 0, getRollcallResult(rollcall, students));
             if (resultMessage == null) {
                 telegramAPI.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, проверьте, может ли бот вам писать в личные сообщения.");
                 return;
             }
-            rollcall.setResultMessageId(resultMessage.getMessageId());
+            rollcall.resultMessageId = resultMessage.getMessageId();
             telegramAPI.deleteMessage(chatId, message.getMessageId());
             Message tagAllMessage = telegramAPI.sendMessage(chatId, threadId, tag(students));
             if (tagAllMessage == null) {
@@ -68,7 +68,7 @@ public class RollcallHandler {
                 telegramAPI.sendError(chatId, threadId, "❌ Не удалось отправить сообщение с упоминанием студентов");
                 return;
             }
-            rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
+            rollcall.tagAllMessageId = tagAllMessage.getMessageId();
             String rollcallText = rollcall.text;
             if (chat.settings.timer != ChatSettings.TIMER_OFF) {
                 rollcallText += "\n\n⏳ Перекличка завершится через " + chat.settings.timer + " мин.";
@@ -80,7 +80,7 @@ public class RollcallHandler {
                 telegramAPI.sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
                 return;
             }
-            rollcall.setRollcallMessageId(rollcallMessage.getMessageId());
+            rollcall.rollcallMessageId = rollcallMessage.getMessageId();
             telegramAPI.editMessageReplyMarkup(chatId, rollcall.rollcallMessageId, getRollcallInline(chat, rollcall));
             telegramAPI.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, students));
             addRollcall(chat, rollcall);

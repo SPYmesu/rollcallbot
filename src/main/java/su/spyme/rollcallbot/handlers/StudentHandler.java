@@ -48,8 +48,8 @@ public class StudentHandler {
             if (student == null) {
                 students.add(new Student(targetId, targetName, instant));
             } else {
-                student.setName(targetName);
-                student.setBirthdate(instant);
+                student.name = targetName;
+                student.birthdate = instant;
             }
             saveChat(chat);
             telegramAPI.sendMessage(chatId, threadId, (student == null ? "Студент добавлен: " : "Студент обновлён: ") + escapeMarkdown(targetName) + " (" + targetId + ").");

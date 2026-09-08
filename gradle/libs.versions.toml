@@ -2,7 +2,6 @@
 telegrambots = "10.3.0"
 log4j = "2.26.1"
 slf4j = "2.0.19"
-lombok = "1.18.48"
 junit = "5.14.4"
 mockito = "5.23.0"
 jackson = "2.22.2"
@@ -19,7 +18,6 @@ jackson-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-y
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 log4j-bom = { module = "org.apache.logging.log4j:log4j-bom", version.ref = "log4j" }
 log4j-slf4j2 = { module = "org.apache.logging.log4j:log4j-slf4j2-impl" }
-lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }

@@ -82,7 +82,7 @@ public class SettingsHandler {
                 reading.put(user.getId(), new PendingInput(Setting.TIMER, chat, messageId, id));
             }
             case "birthdays" -> {
-                chat.settings.setBirthdays(!chat.settings.birthdays);
+                chat.settings.birthdays = !chat.settings.birthdays;
                 telegramAPI.editMessageReplyMarkup(chatId, messageId, getSettingsInline(chat));
                 try {
                     saveChat(chat);
@@ -192,12 +192,12 @@ public class SettingsHandler {
                 if (timer == null || (timer != ChatSettings.TIMER_OFF && (timer < ChatSettings.TIMER_MIN || timer > ChatSettings.TIMER_MAX))) {
                     return "❗️ Нужно число от %d до %d или %d, чтобы отключить автозавершение.".formatted(ChatSettings.TIMER_MIN, ChatSettings.TIMER_MAX, ChatSettings.TIMER_OFF);
                 }
-                chat.settings.setTimer(timer);
+                chat.settings.timer = timer;
                 saveChat(chat);
                 telegramAPI.editMessageReplyMarkup(chatId, input.menuId(), getSettingsInline(chat));
             }
             case MESSAGE -> {
-                chat.settings.setMessage(text);
+                chat.settings.message = text;
                 saveChat(chat);
                 telegramAPI.editMessageText(chatId, input.menuId(), getMessageMenu(chat), getMessageSettingsInline(chat));
             }
@@ -224,7 +224,7 @@ public class SettingsHandler {
                 List<Student> students = new ArrayList<>(chat.students);
                 students.remove(student);
                 students.add(pos - 1, student);
-                chat.setStudents(students);
+                chat.students = students;
                 saveChat(chat);
                 telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
             }
@@ -232,7 +232,7 @@ public class SettingsHandler {
                 if (!Student.isValidName(text)) return "❌ Нужно указать фамилию и имя студента";
                 Student student = getStudent(chat.students, input.studentId());
                 if (student == null) return "❌ Студент не найден";
-                student.setName(text);
+                student.name = text;
                 saveChat(chat);
                 telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
             }
@@ -245,7 +245,7 @@ public class SettingsHandler {
                 }
                 Student student = getStudent(chat.students, input.studentId());
                 if (student == null) return "❌ Студент не найден";
-                student.setBirthdate(birthdate);
+                student.birthdate = birthdate;
                 saveChat(chat);
                 telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
             }

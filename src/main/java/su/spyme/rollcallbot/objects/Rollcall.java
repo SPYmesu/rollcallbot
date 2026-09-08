@@ -1,15 +1,8 @@
 package su.spyme.rollcallbot.objects;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
-@AllArgsConstructor
 public class Rollcall {
     public long chatId;
     public int threadId;
@@ -20,6 +13,18 @@ public class Rollcall {
     public String text;
     public long startTime;
     public List<RollcallEntry> entries;
+
+    public Rollcall(long chatId, int threadId, int rollcallMessageId, int tagAllMessageId, long resultChatId, int resultMessageId, String text, long startTime, List<RollcallEntry> entries) {
+        this.chatId = chatId;
+        this.threadId = threadId;
+        this.rollcallMessageId = rollcallMessageId;
+        this.tagAllMessageId = tagAllMessageId;
+        this.resultChatId = resultChatId;
+        this.resultMessageId = resultMessageId;
+        this.text = text;
+        this.startTime = startTime;
+        this.entries = entries;
+    }
 
     public int getCount(RollcallAnswer answer) {
         int count = 0;

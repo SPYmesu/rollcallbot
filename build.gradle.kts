@@ -26,8 +26,6 @@ dependencies {
     implementation(libs.slf4j.api)
     implementation(platform(libs.log4j.bom))
     implementation(libs.log4j.slf4j2)
-    compileOnly(libs.lombok)
-    annotationProcessor(libs.lombok)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.launcher)

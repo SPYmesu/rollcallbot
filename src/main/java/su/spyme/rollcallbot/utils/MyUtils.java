@@ -27,8 +27,8 @@ public class MyUtils {
                 String name = telegramAPI.getChatTitle(chatId);
                 if (name == null) return null;
                 chat = storage.load(chatId);
-                chat.setName(name);
-                chat.setAdmins(admins);
+                chat.name = name;
+                chat.admins = admins;
                 saveChat(chat);
             } catch (IOException exception) {
                 logger.error("Error while loading chat {}", chatId, exception);
@@ -59,12 +59,12 @@ public class MyUtils {
     }
 
     public static void updateChatAdmins(Chat chat) {
-        chat.setAdmins(telegramAPI.getChatAdministrators(chat.chatId).stream().map(it -> it.getUser().getId()).toList());
+        chat.admins = telegramAPI.getChatAdministrators(chat.chatId).stream().map(it -> it.getUser().getId()).toList();
     }
 
     public static void updateChatName(Chat chat) {
         String name = telegramAPI.getChatTitle(chat.chatId);
-        if (name != null) chat.setName(name);
+        if (name != null) chat.name = name;
     }
 
     public static Rollcall getRollcallById(long chatId, int rollcallId) {

@@ -12,6 +12,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
@@ -27,7 +28,7 @@ public class MyUtils {
                 YamlFile chatConfig = loadConfig(String.valueOf(chatId));
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
                 String name = telegramAPI.getChat(chatId).getTitle();
-                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new ArrayList<>());
+                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, "\uD83D\uDE4B Перекличка на наличие на паре", List.of("✅ Я на паре", "\uD83E\uDD12 Я болею (ув. причина)", "❌ Я не на паре"), false), new ArrayList<>(), new CopyOnWriteArrayList<>());
                 chats.add(chat);
                 saveChat(chat);
             } catch (IOException ignored) {

@@ -1,5 +1,7 @@
 package su.spyme.rollcallbot.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import su.spyme.rollcallbot.objects.*;
 
@@ -16,6 +18,7 @@ import static su.spyme.rollcallbot.utils.MyUtils.removeRollcall;
 import static su.spyme.rollcallbot.utils.StringUtils.tag;
 
 public class ReminderUtil {
+    private static final Logger logger = LoggerFactory.getLogger(ReminderUtil.class);
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Set<String> processedReminders = new HashSet<>();
 
@@ -29,7 +32,11 @@ public class ReminderUtil {
         for (Chat chat : chats) {
             if (chat.rollcalls == null) continue;
             for (Rollcall rollcall : chat.rollcalls) {
-                checkRollcall(chat, rollcall, currentTime);
+                try {
+                    checkRollcall(chat, rollcall, currentTime);
+                } catch (Exception exception) {
+                    logger.error("Error while checkRollcall({}, {})", chat.chatId, rollcall.rollcallMessageId, exception);
+                }
             }
         }
     }

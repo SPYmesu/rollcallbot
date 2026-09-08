@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -62,7 +63,7 @@ public class Main {
             yamlFile = loadConfig("config");
 
             List<String> chatsList = yamlFile.getStringList("chats");
-            chats = new ArrayList<>();
+            chats = new CopyOnWriteArrayList<>();
             for (String chatId : chatsList) {
                 YamlFile chatConfig = loadConfig(chatId);
                 List<Student> chatStudents = new ArrayList<>();
@@ -84,7 +85,7 @@ public class Main {
                     chatStudents.add(student);
                 }
                 if (updated) chatConfig.save();
-                List<Rollcall> chatRollcalls = new ArrayList<>();
+                List<Rollcall> chatRollcalls = new CopyOnWriteArrayList<>();
                 for (String key : getKeys(chatConfig, "rollcalls")) {
                     List<RollcallEntry> entries = new ArrayList<>();
                     for (String entryKey : getKeys(chatConfig, "rollcalls." + key + ".entries")) {

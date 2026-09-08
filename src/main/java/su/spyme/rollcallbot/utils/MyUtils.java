@@ -30,7 +30,8 @@ public class MyUtils {
             try {
                 YamlFile chatConfig = loadConfig(String.valueOf(chatId));
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
-                String name = telegramAPI.getChat(chatId).getTitle();
+                String name = telegramAPI.getChatTitle(chatId);
+                if (name == null) return null;
                 chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(60, ChatSettings.DEFAULT_MESSAGE, ChatSettings.DEFAULT_BUTTONS, true), new ArrayList<>(), new CopyOnWriteArrayList<>());
                 saveChat(chat);
             } catch (IOException ignored) {
@@ -68,7 +69,8 @@ public class MyUtils {
     }
 
     public static void updateChatName(Chat chat) {
-        chat.setName(telegramAPI.getChat(chat.chatId).getTitle());
+        String name = telegramAPI.getChatTitle(chat.chatId);
+        if (name != null) chat.setName(name);
     }
 
     public static Rollcall getRollcallById(long chatId, int rollcallId) {

@@ -180,6 +180,11 @@ public class TelegramAPI {
         return null;
     }
 
+    public String getChatTitle(long chatId) {
+        org.telegram.telegrambots.meta.api.objects.chat.Chat chat = getChat(chatId);
+        return chat == null ? null : chat.getTitle();
+    }
+
     public List<ChatMember> getChatAdministrators(long chatId) {
         List<ChatMember> chatAdministrators = Collections.emptyList();
         try {
@@ -193,7 +198,7 @@ public class TelegramAPI {
 
     public boolean isAdmin(long chatId, long userId) {
         Chat chat = MyUtils.getChat(chatId);
-        if (chat.admins.isEmpty())
+        if (chat == null || chat.admins.isEmpty())
             return getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == OWNER_ID;
         return chat.admins.contains(userId) || userId == OWNER_ID;
     }

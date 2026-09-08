@@ -1,5 +1,6 @@
 package su.spyme.rollcallbot.utils;
 
+import org.simpleyaml.configuration.ConfigurationSection;
 import org.simpleyaml.configuration.file.YamlFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,15 +19,8 @@ public class ConfigUtils {
     }
 
     public static List<String> getKeys(YamlFile config, String section) {
-        createSectionIfNotExist(config, section);
-        return config.getConfigurationSection(section).getKeys(false).stream().toList();
-    }
-
-    public static void createSectionIfNotExist(YamlFile config, String path) {
-        if (!config.contains(path)) {
-            setAndSave(config, path + ".temp", 10);
-            setAndSave(config, path + ".temp", null);
-        }
+        ConfigurationSection configurationSection = config.getConfigurationSection(section);
+        return configurationSection == null ? List.of() : configurationSection.getKeys(false).stream().toList();
     }
 
     public static void setAndSave(YamlFile config, String path, Object value) {

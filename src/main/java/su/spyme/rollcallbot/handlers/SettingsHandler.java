@@ -1,12 +1,11 @@
 package su.spyme.rollcallbot.handlers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
+import su.spyme.rollcallbot.handlers.PendingInput.Setting;
 import su.spyme.rollcallbot.objects.Chat;
 import su.spyme.rollcallbot.objects.RollcallAnswer;
 import su.spyme.rollcallbot.objects.Student;
@@ -23,8 +22,7 @@ import static su.spyme.rollcallbot.utils.MyUtils.*;
 import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class SettingsHandler {
-    private static final Logger logger = LoggerFactory.getLogger(SettingsHandler.class);
-    private final Map<Long, String> reading = new HashMap<>();
+    private final Map<Long, PendingInput> reading = new HashMap<>();
     private final Map<Chat, Long> cooldowns = new HashMap<>();
 
     public void sendChatList(Message message) {
@@ -77,7 +75,7 @@ public class SettingsHandler {
                         Отправьте время, через которое вы хотите автоматически завершать перекличку.
                         Это число в минутах от 30 до 90 или -1, если вы хотите отключить эту функцию.
                         """).getMessageId();
-                reading.put(user.getId(), "timer☭" + chat.chatId + "☭" + messageId + "☭" + id);
+                reading.put(user.getId(), new PendingInput(Setting.TIMER, chat, messageId, id));
             }
             case "birthdays" -> {
                 chat.settings.setBirthdays(!chat.settings.birthdays);
@@ -115,7 +113,12 @@ public class SettingsHandler {
                     int id = telegramAPI.sendMessage(chatId, """
                             Введите желаемый текст для выбранного элемента сообщения.
                             """).getMessageId();
-                    reading.put(user.getId(), setting + "☭" + chat.chatId + "☭" + messageId + "☭" + id);
+                    if (setting.equals("text")) {
+                        reading.put(user.getId(), new PendingInput(Setting.MESSAGE, chat, messageId, id));
+                    } else {
+                        RollcallAnswer answer = RollcallAnswer.valueOf(setting.substring("button".length()));
+                        reading.put(user.getId(), new PendingInput(Setting.BUTTON, chat, messageId, id, 0, answer));
+                    }
                 } else {
                     telegramAPI.deleteMessage(chatId, messageId);
                     telegramAPI.sendMessageInline(chatId, getMessageSettingsInline(chat), getMessageMenu(chat));
@@ -133,15 +136,15 @@ public class SettingsHandler {
                                 .build(),
                         getStudentsMenu(chat)
                 ).getMessageId();
-                reading.put(user.getId(), "student☭" + chat.chatId + "☭" + messageId + "☭" + id);
+                reading.put(user.getId(), new PendingInput(Setting.STUDENT, chat, messageId, id));
             }
             case "student" -> {
-                long userId = Long.parseLong(callDataArray[3]);
-                String setting = callDataArray[4];
+                long studentId = Long.parseLong(callDataArray[3]);
+                Setting setting = Setting.valueOf(callDataArray[4].toUpperCase());
                 int id = telegramAPI.sendMessage(chatId, """
                         Введите желаемое значение для выбранного элемента пользователя.
                         """).getMessageId();
-                reading.put(user.getId(), setting + "☭" + chat.chatId + "☭" + messageId + "☭" + id + "☭" + userId);
+                reading.put(user.getId(), new PendingInput(setting, chat, messageId, id, studentId, null));
             }
         }
         telegramAPI.answerInline(update);
@@ -150,154 +153,108 @@ public class SettingsHandler {
     public boolean handleInput(Message message) {
         long chatId = message.getChatId();
         long userId = message.getFrom().getId();
-        if (!reading.containsKey(userId)) return false;
-        String toSet = message.getText();
-        if (toSet.startsWith("/") || toSet.startsWith(".")) {
+        PendingInput input = reading.get(userId);
+        if (input == null) return false;
+        String text = message.getText();
+        if (text.startsWith("/") || text.startsWith(".")) {
             reading.remove(userId);
             return false;
         }
-        String metadata = reading.remove(userId);
-        String[] split = metadata.split("☭");
-        Chat chat = getChat(Long.parseLong(split[1]));
-        int menuId = Integer.parseInt(split[2]);
-        int infoMessage = Integer.parseInt(split[3]);
-        if (chat == null) return true;
-        switch (split[0]) {
-            case "timer" -> {
-                try {
-                    int timer = Integer.parseInt(toSet);
-                    if (timer != -1 && (timer < 30 || timer > 90)) throw new NumberFormatException();
-                    chat.settings.setTimer(timer);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageReplyMarkup(chatId, menuId, getSettingsInline(chat));
-                } catch (NumberFormatException ignored) {
-                    if (split.length > 4) {
-                        reading.put(userId, metadata);
-                        return true;
-                    } else reading.put(userId, metadata + "☭badint");
-                    telegramAPI.editMessageText(chatId, infoMessage, """
-                            Отправьте время, через которое вы хотите автоматически завершать перекличку.
-                            Это число в минутах от 30 до 90 или -1, если вы хотите отключить эту функцию.
-
-                            ❗️ Проверьте введенное число, с ним что-то не так.
-                            """);
-                    return true;
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки чата");
-                }
-            }
-            case "text" -> {
-                try {
-                    chat.settings.setMessage(toSet);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageText(chatId, menuId, getMessageMenu(chat), getMessageSettingsInline(chat));
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки чата");
-                }
-            }
-            case "buttonHERE", "buttonNOTHEREREASON", "buttonNOTHERE" -> {
-                try {
-                    chat.settings.setButton(RollcallAnswer.valueOf(split[0].substring("button".length())), toSet);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageReplyMarkup(chatId, menuId, getMessageSettingsInline(chat));
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки чата");
-                }
-            }
-            case "student" -> {
-                try {
-                    int num = Integer.parseInt(toSet);
-                    if (num < 1 || num > chat.students.size()) throw new NumberFormatException();
-                    Student student = chat.students.get(num - 1);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.sendMessageInline(chatId, getStudentInline(chat, student), getStudentMenu(chat, student));
-                    return true;
-                } catch (NumberFormatException ignored) {
-                    if (split.length > 4) {
-                        reading.put(userId, metadata);
-                        return true;
-                    } else reading.put(userId, metadata + "☭badint");
-                    telegramAPI.sendMessage(chatId, """
-                            ❗️ Проверьте введенное число, с ним что-то не так.
-                            """);
-                    return true;
-                }
-            }
-            case "position" -> {
-                try {
-                    long studentId = Long.parseLong(split[4]);
-                    int pos = Integer.parseInt(toSet);
-                    if (pos < 1 || pos > chat.students.size()) throw new NumberFormatException();
-                    List<Student> students = new ArrayList<>(chat.students);
-                    Student student = students.stream().filter(it -> it.userId == studentId).findFirst().orElse(null);
-                    if (student == null) return true;
-                    students.remove(student);
-                    students.add(pos - 1, student);
-                    chat.setStudents(students);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
-                } catch (NumberFormatException ignored) {
-                    if (split.length > 5) {
-                        reading.put(userId, metadata);
-                        return true;
-                    } else reading.put(userId, metadata + "☭badint");
-                    telegramAPI.editMessageText(chatId, infoMessage, """
-                            Отправьте желаемую позицию, на которую вы хотите переместить студента
-
-                            ❗️ Проверьте введенное число, с ним что-то не так.
-                            """);
-                    return true;
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки студента");
-                }
-            }
-            case "name" -> {
-                try {
-                    if (!Student.isValidName(toSet)) {
-                        reading.put(userId, metadata);
-                        telegramAPI.sendMessage(chatId, "❌ Нужно указать фамилию и имя студента");
-                        return true;
-                    }
-                    long studentId = Long.parseLong(split[4]);
-                    Student student = getStudent(chat.students, studentId);
-                    if (student == null) return true;
-                    student.setName(toSet);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки студента");
-                }
-            }
-            case "birthdate" -> {
-                Instant instant;
-                try {
-                    instant = parseDate(toSet);
-                } catch (Exception ignored) {
-                    reading.put(userId, metadata);
-                    telegramAPI.sendMessage(chatId, "❌ Нужно указать дату в формате дд.ММ.гггг (01.12.2012)");
-                    return true;
-                }
-                try {
-                    long studentId = Long.parseLong(split[4]);
-                    Student student = getStudent(chat.students, studentId);
-                    if (student == null) return true;
-                    student.setBirthdate(instant);
-                    saveChat(chat);
-                    telegramAPI.deleteMessage(chatId, infoMessage);
-                    telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
-                } catch (IOException ignored1) {
-                    telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки студента");
-                }
-            }
-            default -> logger.warn("Unhandled reading: {}", split[0]);
+        String error;
+        try {
+            error = applyInput(chatId, input, text);
+        } catch (IOException exception) {
+            reading.remove(userId);
+            telegramAPI.sendError(chatId, 0, "Не удалось сохранить настройки чата");
+            return true;
         }
-        telegramAPI.sendMessage(chatId, "Настройка сохранена: " + escapeMarkdown(toSet));
+        if (error != null) {
+            telegramAPI.sendMessage(chatId, error);
+            return true;
+        }
+        reading.remove(userId);
+        telegramAPI.deleteMessage(chatId, input.infoMessageId());
+        if (input.setting() != Setting.STUDENT) {
+            telegramAPI.sendMessage(chatId, "Настройка сохранена: " + escapeMarkdown(text));
+        }
         return true;
+    }
+
+    private String applyInput(long chatId, PendingInput input, String text) throws IOException {
+        Chat chat = input.chat();
+        switch (input.setting()) {
+            case TIMER -> {
+                Integer timer = parseInt(text);
+                if (timer == null || (timer != -1 && (timer < 30 || timer > 90))) {
+                    return "❗️ Нужно число от 30 до 90 или -1, чтобы отключить автозавершение.";
+                }
+                chat.settings.setTimer(timer);
+                saveChat(chat);
+                telegramAPI.editMessageReplyMarkup(chatId, input.menuId(), getSettingsInline(chat));
+            }
+            case MESSAGE -> {
+                chat.settings.setMessage(text);
+                saveChat(chat);
+                telegramAPI.editMessageText(chatId, input.menuId(), getMessageMenu(chat), getMessageSettingsInline(chat));
+            }
+            case BUTTON -> {
+                chat.settings.setButton(input.answer(), text);
+                saveChat(chat);
+                telegramAPI.editMessageReplyMarkup(chatId, input.menuId(), getMessageSettingsInline(chat));
+            }
+            case STUDENT -> {
+                Integer num = parseInt(text);
+                if (num == null || num < 1 || num > chat.students.size()) {
+                    return "❗️ Нужно указать номер студента из списка.";
+                }
+                Student student = chat.students.get(num - 1);
+                telegramAPI.sendMessageInline(chatId, getStudentInline(chat, student), getStudentMenu(chat, student));
+            }
+            case POSITION -> {
+                Integer pos = parseInt(text);
+                if (pos == null || pos < 1 || pos > chat.students.size()) {
+                    return "❗️ Нужно указать позицию от 1 до " + chat.students.size() + ".";
+                }
+                Student student = getStudent(chat.students, input.studentId());
+                if (student == null) return "❌ Студент не найден";
+                List<Student> students = new ArrayList<>(chat.students);
+                students.remove(student);
+                students.add(pos - 1, student);
+                chat.setStudents(students);
+                saveChat(chat);
+                telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
+            }
+            case NAME -> {
+                if (!Student.isValidName(text)) return "❌ Нужно указать фамилию и имя студента";
+                Student student = getStudent(chat.students, input.studentId());
+                if (student == null) return "❌ Студент не найден";
+                student.setName(text);
+                saveChat(chat);
+                telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
+            }
+            case BIRTHDATE -> {
+                Instant birthdate;
+                try {
+                    birthdate = parseDate(text);
+                } catch (Exception exception) {
+                    return "❌ Нужно указать дату в формате дд.ММ.гггг (01.12.2012)";
+                }
+                Student student = getStudent(chat.students, input.studentId());
+                if (student == null) return "❌ Студент не найден";
+                student.setBirthdate(birthdate);
+                saveChat(chat);
+                telegramAPI.editMessageText(chatId, input.menuId(), getStudentMenu(chat, student), getStudentInline(chat, student));
+            }
+        }
+        return null;
+    }
+
+    private static Integer parseInt(String text) {
+        try {
+            return Integer.parseInt(text.trim());
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private InlineKeyboardMarkup getSettingsInline(Chat chat) {

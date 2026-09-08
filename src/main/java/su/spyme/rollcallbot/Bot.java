@@ -31,6 +31,27 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
     private static final Logger logger = LoggerFactory.getLogger(Bot.class);
     public static Map<Long, String> reading = new HashMap<>();
     public static Map<Chat, Long> cooldowns = new HashMap<>();
+    private static final String HELP = """
+            Помощь по командам:
+
+            .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
+            *Так же эта команда автоматически выполняет следующую*
+
+            .позвать (.все) - упоминает всех добавленных студентов
+
+            .игнор - упоминает только тех, кто ещё не участвовал в перекличке
+            *Сообщение само удалится через 120 секунд*
+
+            .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
+
+            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
+
+            .настройки - открывает меню настроек (только в личном чате с ботом)
+
+            Сообщить об ошибке: https://github.com/SPYmesu/rollcallbot/issues
+            Исходный код: https://github.com/SPYmesu/rollcallbot
+            Поддержать разработчика: https://boosty.to/SPY\\_me/about
+            """;
 
     @Override
     public void consume(Update update) {
@@ -324,27 +345,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                 }
                 case "help", "помощь" -> {
                     if (!telegramAPI.isAdmin(chatId, userId)) return;
-                    telegramAPI.sendMessage(chatId, threadId, """
-                            Помощь по командам:
-                            
-                            .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
-                            *Так же эта команда автоматически выполняет следующую*
-                            
-                            .позвать (.все) - упоминает всех добавленных студентов
-                            
-                            .игнор - упоминает только тех, кто ещё не участвовал в перекличке
-                            *Сообщение само удалится через 120 секунд*
-                            
-                            .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
-                            
-                            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
-
-                            .настройки - открывает меню настроек (только в личном чате с ботом)
-                            
-                            Сообщить об ошибке: https://github.com/SPYmesu/rollcallbot/issues
-                            Исходный код: https://github.com/SPYmesu/rollcallbot
-                            Поддержать разработчика: https://boosty.to/SPY\\_me/about
-                            """);
+                    telegramAPI.sendMessage(chatId, threadId, HELP);
                 }
                 default -> logger.debug("Unhandled command: {}", command);
             }
@@ -538,27 +539,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                 }
                 case "help", "помощь" -> {
                     if (!update.getMessage().isUserMessage()) return;
-                    telegramAPI.sendMessage(chatId, """
-                            Помощь по командам:
-                            
-                            .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
-                            *Так же эта команда автоматически выполняет следующую*
-                            
-                            .позвать (.все) - упоминает всех добавленных студентов
-                            
-                            .игнор - упоминает только тех, кто ещё не участвовал в перекличке
-                            *Сообщение само удалится через 120 секунд*
-                            
-                            .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
-                            
-                            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
-                            
-                            .настройки - открывает меню настроек (только в личном чате с ботом)
-                            
-                            Сообщить об ошибке: https://github.com/SPYmesu/rollcallbot/issues
-                            Исходный код: https://github.com/SPYmesu/rollcallbot
-                            Поддержать разработчика: https://boosty.to/SPY\\_me/about
-                            """);
+                    telegramAPI.sendMessage(chatId, HELP);
                 }
                 default -> logger.debug("Unhandled command: {}", command);
             }

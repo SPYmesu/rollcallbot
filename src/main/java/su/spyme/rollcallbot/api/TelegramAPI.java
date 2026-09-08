@@ -31,10 +31,6 @@ import static su.spyme.rollcallbot.Main.telegramClient;
 public class TelegramAPI {
     private static final Logger logger = LoggerFactory.getLogger(TelegramAPI.class);
 
-    public String getBotToken() {
-        return System.getenv("rollcall_bot_token");
-    }
-
     public void setBotCommands() {
         try {
             List<BotCommand> privateCommands = new ArrayList<>();

@@ -82,9 +82,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                                 return;
                             }
                             RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[2]);
-                            rollcall.entries.remove(entry);
                             entry.answer = answer;
-                            rollcall.entries.add(entry);
                             setAndSave(getChat(chatId).config, "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", answer.name());
                             telegramAPI.answerInline(update, "Спасибо за участие, уже передали ответ старосте.");
                         }
@@ -230,7 +228,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             List<Student> students = chat.students;
             switch (command) {
                 case "all", "позвать", "все" -> {
-                    if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                    if (!telegramAPI.isAdmin(chatId, userId)) return;
                     if (students.isEmpty()) {
                         telegramAPI.sendMessage(chatId, threadId, "❌ В этом чате нет студентов, добавьте их командой `.студент`");
                         return;
@@ -239,7 +237,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                 }
                 case "rollcall", "перекличка", "п" -> {
                     try {
-                        if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                        if (!telegramAPI.isAdmin(chatId, userId)) return;
                         if (getRollcallByThread(chat, threadId) != null) {
                             telegramAPI.sendMessage(chatId, threadId, "В этом чате уже активна перекличка... \nСначала заверши её (`.пв`)");
                             return;
@@ -285,7 +283,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     }
                 }
                 case "rollcallstop", "перекличкавсё", "пв" -> {
-                    if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                    if (!telegramAPI.isAdmin(chatId, userId)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall == null) {
                         sendError(chatId, threadId, "rollcall == null;");
@@ -295,7 +293,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     finishRollcall(chat, rollcall);
                 }
                 case "student", "студент", "с" -> {
-                    if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                    if (!telegramAPI.isAdmin(chatId, userId)) return;
                     if (update.getMessage().getReplyToMessage() != null) {
                         long targetId = update.getMessage().getReplyToMessage().getFrom().getId();
                         if (args.length < 3) {
@@ -331,7 +329,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     }
                 }
                 case "ignore", "игнор" -> {
-                    if (!telegramAPI.isAdmin(chatId, userId) || update.getMessage().isUserMessage()) return;
+                    if (!telegramAPI.isAdmin(chatId, userId)) return;
                     Rollcall rollcall = getRollcallByThread(chat, threadId);
                     if (rollcall != null) {
                         telegramAPI.deleteMessage(chatId, update.getMessage().getMessageId());

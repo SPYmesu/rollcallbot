@@ -124,6 +124,7 @@ public class MyUtils {
                 text.append("\n\nИнтересный факт: ").append(escapeMarkdown(best.student.name)).append(" кликнул на кнопку ").append(best.times).append(" раз!");
         }
         telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());
+        telegramAPI.editMessageText(rollcall.resultChatId, rollcall.resultMessageId, getRollcallResult(rollcall, chat.students) + "\n\n✅ Перекличка завершена");
     }
 
     public static InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {

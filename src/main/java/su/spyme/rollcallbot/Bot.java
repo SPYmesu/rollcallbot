@@ -300,7 +300,6 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         try {
                             instant = new SimpleDateFormat("dd.MM.yyyy").parse(args[1]).toInstant();
                         } catch (Exception ignored) {
-                            telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
                         }
                         if (targetName.split(" ").length < 2 || instant == null) {
                             telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");

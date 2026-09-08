@@ -42,11 +42,11 @@ public class ReminderUtil {
     }
 
     private void checkRollcall(Chat chat, Rollcall rollcall, long currentTime) {
-        if (chat.settings.timer == -1) return;
         if (rollcall.getStudents(RollcallAnswer.IGNORE).isEmpty()) {
             finishRollcall(chat, rollcall);
             return;
         }
+        if (chat.settings.timer == -1) return;
         long finishTime = rollcall.startTime + TimeUnit.MINUTES.toMillis(chat.settings.timer);
         long timeLeft = finishTime - currentTime;
         String rollcallKey = rollcall.chatId + "_" + rollcall.threadId + "_" + rollcall.startTime;

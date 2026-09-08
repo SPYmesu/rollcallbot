@@ -35,7 +35,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
             Помощь по командам:
 
             .перекличка (.п) `<свой текст сообщения>` - начать перекличку `<если указано, то с этим текстом>`
-            *Так же эта команда автоматически выполняет следующую*
+            *Также эта команда автоматически выполняет следующую*
 
             .позвать (.все) - упоминает всех добавленных студентов
 
@@ -44,7 +44,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
 
             .перекличкавсё (.пв) - заканчивает перекличку, удаляет сообщение с опросом
 
-            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными
+            .студент (.с) `<Дата рождения 11.11.2011>` `<Фамилия Имя>` - добавляет студента с указанными данными (ответом на его сообщение)
 
             .настройки - открывает меню настроек (только в личном чате с ботом)
 
@@ -117,7 +117,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                                                 через сколько перекличка будет автоматически завершена.
                                                 Укажите -1, чтобы отключить эту функцию.
                                             
-                                            ✏ Дни рождения: найстройте, будет ли бот поздравлять
+                                            ✏ Дни рождения: настройте, будет ли бот поздравлять
                                                 ваших студентов с днем рождения.
                                             
                                             ✏ Обновить информацию: Если вы изменяли
@@ -258,7 +258,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                         rollcall.setResultChatId(userId);
                         Message resultMessage = telegramAPI.sendMessage(userId, 0, getRollcallResult(rollcall, students));
                         if (resultMessage == null) {
-                            telegramAPI.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, провертье, может ли бот вам писать в личные сообщения.");
+                            telegramAPI.sendMessage(chatId, threadId, "❌ Не удалось отправить сообщение с результатом переклички, проверьте, может ли бот вам писать в личные сообщения.");
                             return;
                         }
                         rollcall.setResultMessageId(resultMessage.getMessageId());

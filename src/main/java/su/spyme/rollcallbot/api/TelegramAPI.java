@@ -45,7 +45,7 @@ public class TelegramAPI {
             adminCommands.add(new BotCommand("help", "Показать меню помощи"));
             adminCommands.add(new BotCommand("rollcall", "Начать перекличку"));
             adminCommands.add(new BotCommand("rollcallstop", "Завершить перекличку принудительно"));
-            adminCommands.add(new BotCommand("all", "Упомянуть всех студентов чате"));
+            adminCommands.add(new BotCommand("all", "Упомянуть всех студентов в чате"));
             adminCommands.add(new BotCommand("ignore", "Упомянуть тех, кто не ответил"));
             adminCommands.add(new BotCommand("student", "Добавить студента по сообщению-ответу (<дата рождения> <Фамилия Имя>)"));
 

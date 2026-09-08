@@ -240,7 +240,7 @@ public class MyUtils {
 
                 Позиция: %s
                 Имя: %s
-                Дата рождения %s
+                Дата рождения: %s
                 """.formatted(
                 chat.students.indexOf(student) + 1,
                 escapeMarkdown(student.name),

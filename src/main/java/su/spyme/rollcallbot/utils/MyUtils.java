@@ -19,8 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import static su.spyme.rollcallbot.Main.*;
 import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
 import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
-import static su.spyme.rollcallbot.utils.StringUtils.format;
-import static su.spyme.rollcallbot.utils.StringUtils.instantToString;
+import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class MyUtils {
     private static final Logger logger = LoggerFactory.getLogger(MyUtils.class);
@@ -119,7 +118,7 @@ public class MyUtils {
                 if (entry.times > best.times) best = entry;
             }
             if (best.times > 5)
-                text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
+                text.append("\n\nИнтересный факт: ").append(escapeMarkdown(best.student.name)).append(" кликнул на кнопку ").append(best.times).append(" раз!");
         }
         telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());
     }
@@ -227,7 +226,7 @@ public class MyUtils {
         StringBuilder sb = new StringBuilder("\uD83D\uDC65 Студенты в этом чате:\n\n");
         int num = 1;
         for (Student student : chat.students) {
-            sb.append(num++).append(". ").append(student.getName()).append("\n");
+            sb.append(num++).append(". ").append(escapeMarkdown(student.name)).append("\n");
         }
         sb.append("\nℹ Отправь номер студента, которого нужно изменить");
         return sb.toString();
@@ -242,7 +241,7 @@ public class MyUtils {
                 Дата рождения %s
                 """.formatted(
                 chat.students.indexOf(student) + 1,
-                student.name,
+                escapeMarkdown(student.name),
                 hasBirthdate(student) ? instantToString(student.birthdate) : "не указана"
         );
     }
@@ -296,24 +295,24 @@ public class MyUtils {
         builder.append("\n\n");
         builder.append("На паре: (").append(here.size()).append(")");
         for (Student student : here) {
-            builder.append("\n").append(student.name);
+            builder.append("\n").append(escapeMarkdown(student.name));
         }
         int notHereSize = notHere.size() + notHereReason.size();
         if (notHereSize > 0) {
             builder.append("\n");
             builder.append("\nНе на паре: (").append(notHereSize).append(")");
             for (Student student : notHereReason) {
-                builder.append("\n").append(student.name).append(" (по ув. причине)");
+                builder.append("\n").append(escapeMarkdown(student.name)).append(" (по ув. причине)");
             }
             for (Student student : notHere) {
-                builder.append("\n").append(student.name);
+                builder.append("\n").append(escapeMarkdown(student.name));
             }
         }
         if (!ignore.isEmpty()) {
             builder.append("\n");
             builder.append("\nПроигнорировали: (").append(ignore.size()).append(")");
             for (Student student : ignore) {
-                builder.append("\n").append(student.name);
+                builder.append("\n").append(escapeMarkdown(student.name));
             }
         }
         return builder.toString();

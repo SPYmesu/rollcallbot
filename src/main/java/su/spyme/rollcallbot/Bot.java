@@ -124,7 +124,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                                             
                                             ✏ Обновить информацию: Если вы изменяли
                                                 администраторов или название, обновите чат.
-                                            """.formatted(chat.name)
+                                            """.formatted(escapeMarkdown(chat.name))
                             );
                         }
                         case "timer" -> {
@@ -313,7 +313,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                                 student.setBirthdate(instant);
                             }
                             saveChat(chat);
-                            telegramAPI.sendMessage(chatId, threadId, (student == null ? "Студент добавлен: " : "Студент обновлён: ") + targetName + " (" + targetId + ").");
+                            telegramAPI.sendMessage(chatId, threadId, (student == null ? "Студент добавлен: " : "Студент обновлён: ") + escapeMarkdown(targetName) + " (" + targetId + ").");
                         } catch (Exception exception) {
                             telegramAPI.sendMessage(chatId, threadId, "❌ При выполнении команды произошла ошибка: " + exception.getMessage());
                         }
@@ -503,7 +503,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                     }
                     default -> logger.warn("Unhandled reading: {}", split[0]);
                 }
-                telegramAPI.sendMessage(chatId, "Настройка сохранена: " + toSet);
+                telegramAPI.sendMessage(chatId, "Настройка сохранена: " + escapeMarkdown(toSet));
                 return;
             }
             String command = args[0].toLowerCase().replaceFirst("^\\.", "/");

@@ -29,8 +29,12 @@ public class StringUtils {
     public static String format(String name, long userId) {
         return String.format(
                 "[%s](tg://user?id=%d)",
-                name, userId
+                escapeMarkdown(name), userId
         );
+    }
+
+    public static String escapeMarkdown(String text) {
+        return text.replaceAll("([_*`\\[])", "\\\\$1");
     }
 
     public static String formatShort(Student student) {

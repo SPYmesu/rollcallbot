@@ -14,13 +14,13 @@ java {
 
 repositories {
     mavenCentral()
-    maven("https://jitpack.io")
 }
 
 dependencies {
     implementation(libs.telegrambots.longpolling)
     implementation(libs.telegrambots.client)
-    implementation(libs.simple.yaml)
+    implementation(platform(libs.jackson.bom))
+    implementation(libs.jackson.yaml)
     implementation(libs.slf4j.api)
     implementation(platform(libs.log4j.bom))
     implementation(libs.log4j.slf4j2)

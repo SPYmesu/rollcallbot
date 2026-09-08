@@ -3,7 +3,6 @@ package su.spyme.rollcallbot.objects;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.simpleyaml.configuration.file.YamlFile;
 
 import java.util.List;
 
@@ -13,7 +12,6 @@ import java.util.List;
 public class Chat {
     public long chatId;
     public String name;
-    public YamlFile config;
     public List<Long> admins;
     public ChatSettings settings;
     public List<Student> students;

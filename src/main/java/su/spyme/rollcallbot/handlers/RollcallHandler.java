@@ -1,6 +1,5 @@
 package su.spyme.rollcallbot.handlers;
 
-import org.simpleyaml.configuration.file.YamlFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.Update;
@@ -15,7 +14,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.Main.telegramAPI;
-import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
 import static su.spyme.rollcallbot.utils.MyUtils.*;
 import static su.spyme.rollcallbot.utils.StringUtils.getArguments;
 import static su.spyme.rollcallbot.utils.StringUtils.tag;
@@ -127,10 +125,9 @@ public class RollcallHandler {
                     telegramAPI.answerInline(update, "Ты не зарегистрирован, обратись к старосте");
                     return;
                 }
-                YamlFile config = getChat(chatId).config;
-                String path = "rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".";
+                Chat chat = getChat(chatId);
                 entry.addTimes();
-                setAndSave(config, path + "times", entry.times);
+                trySaveChat(chat);
                 RollcallAnswer answer = RollcallAnswer.getByName(callDataArray[2]);
                 long now = System.currentTimeMillis();
                 if (entry.answer == answer) {
@@ -145,8 +142,7 @@ public class RollcallHandler {
                 boolean changed = entry.answer != RollcallAnswer.IGNORE;
                 entry.answer = answer;
                 entry.answerTime = now;
-                config.set(path + "answer", answer.name());
-                setAndSave(config, path + "answerTime", now);
+                trySaveChat(chat);
                 telegramAPI.answerInline(update, changed ? "Ответ изменён" : "Спасибо за участие, уже передали ответ старосте.");
             }
             default -> {

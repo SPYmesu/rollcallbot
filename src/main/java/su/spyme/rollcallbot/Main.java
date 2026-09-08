@@ -1,6 +1,5 @@
 package su.spyme.rollcallbot;
 
-import org.simpleyaml.configuration.file.YamlFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
@@ -8,27 +7,23 @@ import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 import su.spyme.rollcallbot.api.TelegramAPI;
-import su.spyme.rollcallbot.objects.*;
+import su.spyme.rollcallbot.objects.Chat;
+import su.spyme.rollcallbot.storage.ChatStorage;
 import su.spyme.rollcallbot.utils.MyUtils;
 import su.spyme.rollcallbot.utils.ReminderUtil;
 
+import java.nio.file.Path;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static su.spyme.rollcallbot.utils.ConfigUtils.getKeys;
-import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
-import static su.spyme.rollcallbot.utils.MyUtils.*;
-import static su.spyme.rollcallbot.utils.StringUtils.*;
+import static su.spyme.rollcallbot.utils.MyUtils.saveChat;
+import static su.spyme.rollcallbot.utils.MyUtils.updateChatAdmins;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -37,7 +32,7 @@ public class Main {
     private static final int BIRTHDAY_CHECK_HOUR = 7;
     public static TelegramClient telegramClient;
     public static TelegramAPI telegramAPI = new TelegramAPI();
-    public static YamlFile yamlFile;
+    public static ChatStorage storage = new ChatStorage(Path.of("storage"));
     public static List<Chat> chats;
 
     public static void main(String[] args) {
@@ -71,75 +66,9 @@ public class Main {
 
     public static void loadAll() {
         try {
-            yamlFile = loadConfig("config");
-
-            List<String> chatsList = yamlFile.getStringList("chats");
             chats = new CopyOnWriteArrayList<>();
-            for (String chatId : chatsList) {
-                YamlFile chatConfig = loadConfig(chatId);
-                List<Student> chatStudents = new ArrayList<>();
-                boolean updated = false;
-                for (String key : getKeys(chatConfig, "students")) {
-                    Student student;
-                    if (chatConfig.get("students." + key + ".name") != null) {
-                        student = new Student(
-                                Long.parseLong(key),
-                                chatConfig.getString("students." + key + ".name"),
-                                parseDate(chatConfig.getString("students." + key + ".birthdate", "01.01.1970"))
-                        );
-                    } else {
-                        student = new Student(Long.parseLong(key), chatConfig.getString("students." + key), Instant.EPOCH);
-                        chatConfig.set("students." + key + ".name", student.name);
-                        chatConfig.set("students." + key + ".birthdate", instantToString(Instant.EPOCH));
-                        updated = true;
-                    }
-                    chatStudents.add(student);
-                }
-                if (updated) chatConfig.save();
-                List<Rollcall> chatRollcalls = new CopyOnWriteArrayList<>();
-                for (String key : getKeys(chatConfig, "rollcalls")) {
-                    List<RollcallEntry> entries = new ArrayList<>();
-                    for (String entryKey : getKeys(chatConfig, "rollcalls." + key + ".entries")) {
-                        Student student = getStudent(chatStudents, Long.parseLong(entryKey));
-                        if (student == null) {
-                            logger.warn("Пропущена запись переклички {} из-за отсутствующего студента {}", key, entryKey);
-                            continue;
-                        }
-                        entries.add(new RollcallEntry(
-                                student,
-                                RollcallAnswer.valueOf(chatConfig.getString("rollcalls." + key + ".entries." + entryKey + ".answer")),
-                                chatConfig.getInt("rollcalls." + key + ".entries." + entryKey + ".times"),
-                                chatConfig.getLong("rollcalls." + key + ".entries." + entryKey + ".answerTime", 0)
-                        ));
-                    }
-                    chatRollcalls.add(new Rollcall(
-                            Long.parseLong(chatId),
-                            chatConfig.getInt("rollcalls." + key + ".threadId"),
-                            Integer.parseInt(key),
-                            chatConfig.getInt("rollcalls." + key + ".tagAllMessageId"),
-                            chatConfig.getLong("rollcalls." + key + ".resultChatId"),
-                            chatConfig.getInt("rollcalls." + key + ".resultMessageId"),
-                            chatConfig.getString("rollcalls." + key + ".text"),
-                            chatConfig.getLong("rollcalls." + key + ".startTime"),
-                            entries
-                    ));
-                }
-                Map<RollcallAnswer, String> buttons = new EnumMap<>(RollcallAnswer.class);
-                List<String> legacyButtons = chatConfig.getStringList("settings.buttonNames");
-                for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
-                    int legacyIndex = RollcallAnswer.BUTTONS.indexOf(answer);
-                    String legacyButton = legacyIndex < legacyButtons.size() ? legacyButtons.get(legacyIndex) : null;
-                    String button = chatConfig.getString("settings.buttons." + answer.name(), legacyButton);
-                    if (button != null) buttons.put(answer, button);
-                }
-                ChatSettings settings = new ChatSettings(
-                        chatConfig.getInt("settings.timer", ChatSettings.DEFAULT_TIMER),
-                        chatConfig.getString("settings.message", ChatSettings.DEFAULT_MESSAGE),
-                        buttons,
-                        chatConfig.getBoolean("settings.birthdays", true)
-                );
-                String name = chatConfig.getString("name", "");
-                Chat chat = new Chat(Long.parseLong(chatId), name, chatConfig, new ArrayList<>(), settings, chatStudents, chatRollcalls);
+            for (long chatId : storage.loadChatIds()) {
+                Chat chat = storage.load(chatId);
                 chats.add(chat);
                 saveChat(chat);
             }

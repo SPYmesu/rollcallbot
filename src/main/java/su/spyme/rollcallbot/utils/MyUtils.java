@@ -1,6 +1,5 @@
 package su.spyme.rollcallbot.utils;
 
-import org.simpleyaml.configuration.file.YamlFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -10,15 +9,10 @@ import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import static su.spyme.rollcallbot.Main.*;
-import static su.spyme.rollcallbot.utils.ConfigUtils.loadConfig;
-import static su.spyme.rollcallbot.utils.ConfigUtils.setAndSave;
 import static su.spyme.rollcallbot.utils.StringUtils.*;
 
 public class MyUtils {
@@ -29,13 +23,16 @@ public class MyUtils {
         Chat chat = chats.stream().filter(it -> it.chatId == chatId).findFirst().orElse(null);
         if (chat == null) {
             try {
-                YamlFile chatConfig = loadConfig(String.valueOf(chatId));
                 List<Long> admins = telegramAPI.getChatAdministrators(chatId).stream().map(it -> it.getUser().getId()).toList();
                 String name = telegramAPI.getChatTitle(chatId);
                 if (name == null) return null;
-                chat = new Chat(chatId, name, chatConfig, admins, new ChatSettings(ChatSettings.DEFAULT_TIMER, ChatSettings.DEFAULT_MESSAGE, new EnumMap<>(RollcallAnswer.class), true), new ArrayList<>(), new CopyOnWriteArrayList<>());
+                chat = storage.load(chatId);
+                chat.setName(name);
+                chat.setAdmins(admins);
                 saveChat(chat);
-            } catch (IOException ignored) {
+            } catch (IOException exception) {
+                logger.error("Error while loading chat {}", chatId, exception);
+                return null;
             }
         }
         return chat;
@@ -46,26 +43,19 @@ public class MyUtils {
             chats.add(chat);
             saveChats();
         }
-        YamlFile config = chat.config;
-        config.set("name", chat.name);
-        config.set("settings.timer", chat.settings.timer);
-        config.set("settings.message", chat.settings.message);
-        config.set("settings.buttonNames", null);
-        for (RollcallAnswer answer : RollcallAnswer.BUTTONS) {
-            config.set("settings.buttons." + answer.name(), chat.settings.getButton(answer));
+        storage.save(chat);
+    }
+
+    public static void trySaveChat(Chat chat) {
+        try {
+            saveChat(chat);
+        } catch (IOException exception) {
+            logger.error("Error while saving chat {}", chat.chatId, exception);
         }
-        config.set("settings.birthdays", chat.settings.birthdays);
-        config.set("students", null);
-        for (Student student : chat.students) {
-            config.set("students." + student.userId + ".name", student.name);
-            config.set("students." + student.userId + ".birthdate", instantToString(student.birthdate));
-        }
-        config.save();
     }
 
     public static void saveChats() throws IOException {
-        yamlFile.set("chats", chats.stream().map(it -> it.chatId).toList());
-        yamlFile.save();
+        storage.saveChatIds(chats.stream().map(it -> it.chatId).toList());
     }
 
     public static void updateChatAdmins(Chat chat) {
@@ -91,27 +81,12 @@ public class MyUtils {
 
     public static void addRollcall(Chat chat, Rollcall rollcall) {
         chat.rollcalls.add(rollcall);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".threadId", rollcall.threadId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".tagAllMessageId", rollcall.tagAllMessageId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultChatId", rollcall.resultChatId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".resultMessageId", rollcall.resultMessageId);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".text", rollcall.text);
-        chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".startTime", rollcall.startTime);
-
-        for (RollcallEntry entry : rollcall.entries) {
-            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answer", entry.answer.name());
-            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".times", entry.times);
-            chat.config.set("rollcalls." + rollcall.rollcallMessageId + ".entries." + entry.student.userId + ".answerTime", entry.answerTime);
-        }
-        try {
-            chat.config.save();
-        } catch (IOException ignored) {
-        }
+        trySaveChat(chat);
     }
 
     public static void removeRollcall(Chat chat, Rollcall rollcall) {
         chat.rollcalls.remove(rollcall);
-        setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
+        trySaveChat(chat);
     }
 
     public static synchronized void finishRollcall(Chat chat, Rollcall rollcall) {

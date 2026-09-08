@@ -38,6 +38,11 @@ public class Main {
     public static List<Chat> chats;
 
     public static void main(String[] args) {
+        String token = System.getenv("rollcall_bot_token");
+        if (token == null || token.isBlank()) {
+            logger.error("Не задана переменная окружения rollcall_bot_token");
+            return;
+        }
         Scanner scanner = new Scanner(System.in);
         Thread inputThread = new Thread(() -> {
             while (scanner.hasNextLine()) if (scanner.nextLine().trim().equalsIgnoreCase("stop")) System.exit(0);
@@ -48,9 +53,9 @@ public class Main {
         loadAll();
         scheduleBirthdayCheck();
         try {
-            telegramClient = new OkHttpTelegramClient(System.getenv("rollcall_bot_token"));
+            telegramClient = new OkHttpTelegramClient(token);
             TelegramBotsLongPollingApplication botsApplication = new TelegramBotsLongPollingApplication();
-            botsApplication.registerBot(System.getenv("rollcall_bot_token"), new Bot());
+            botsApplication.registerBot(token, new Bot());
             telegramAPI.setBotCommands();
         } catch (TelegramApiException exception) {
             logger.error("Error in TelegramAPI: {}", exception.getMessage());

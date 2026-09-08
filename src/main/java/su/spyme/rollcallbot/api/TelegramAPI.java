@@ -25,13 +25,18 @@ import su.spyme.rollcallbot.utils.MyUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.Main.OWNER_ID;
 import static su.spyme.rollcallbot.Main.telegramClient;
 
 public class TelegramAPI {
     private static final Logger logger = LoggerFactory.getLogger(TelegramAPI.class);
+    private static final long ADMINS_REFRESH_INTERVAL = TimeUnit.MINUTES.toMillis(5);
+    private final Map<Long, Long> adminsRefreshed = new HashMap<>();
 
     public void setBotCommands() {
         try {
@@ -204,10 +209,15 @@ public class TelegramAPI {
     }
 
     public boolean isAdmin(long chatId, long userId) {
+        if (userId == OWNER_ID) return true;
         Chat chat = MyUtils.getChat(chatId);
-        if (chat == null || chat.admins.isEmpty())
-            return getChatAdministrators(chatId).stream().anyMatch(it -> it.getUser().getId() == userId) || userId == OWNER_ID;
-        return chat.admins.contains(userId) || userId == OWNER_ID;
+        if (chat == null) return false;
+        if (chat.admins.contains(userId)) return true;
+        long now = System.currentTimeMillis();
+        if (now - adminsRefreshed.getOrDefault(chatId, 0L) < ADMINS_REFRESH_INTERVAL) return false;
+        adminsRefreshed.put(chatId, now);
+        MyUtils.updateChatAdmins(chat);
+        return chat.admins.contains(userId);
     }
 
     public void answerInline(Update update, String text) {

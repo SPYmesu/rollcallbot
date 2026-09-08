@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 import static su.spyme.rollcallbot.Main.chats;
 import static su.spyme.rollcallbot.Main.telegramAPI;
-import static su.spyme.rollcallbot.utils.MyUtils.removeRollcall;
+import static su.spyme.rollcallbot.utils.MyUtils.finishRollcall;
 import static su.spyme.rollcallbot.utils.StringUtils.tag;
 
 public class ReminderUtil {
@@ -44,7 +44,7 @@ public class ReminderUtil {
     private void checkRollcall(Chat chat, Rollcall rollcall, long currentTime) {
         if (chat.settings.timer == -1) return;
         if (rollcall.getStudents(RollcallAnswer.IGNORE).isEmpty()) {
-            processFinish(chat, rollcall);
+            finishRollcall(chat, rollcall);
             return;
         }
         long finishTime = rollcall.startTime + TimeUnit.MINUTES.toMillis(chat.settings.timer);
@@ -53,7 +53,7 @@ public class ReminderUtil {
         if (timeLeft <= 0) {
             String finishKey = rollcallKey + "_finish";
             if (!processedReminders.contains(finishKey)) {
-                processFinish(chat, rollcall);
+                finishRollcall(chat, rollcall);
                 processedReminders.add(finishKey);
             }
         } else {
@@ -86,22 +86,6 @@ public class ReminderUtil {
         if (ignoreMessage != null) {
             scheduler.schedule(() -> telegramAPI.deleteMessage(rollcall.chatId, ignoreMessage.getMessageId()), 120, TimeUnit.SECONDS);
         }
-    }
-
-    private void processFinish(Chat chat, Rollcall rollcall) {
-        telegramAPI.deleteMessage(rollcall.chatId, rollcall.rollcallMessageId);
-        telegramAPI.deleteMessage(rollcall.chatId, rollcall.tagAllMessageId);
-        removeRollcall(chat, rollcall);
-        StringBuilder text = new StringBuilder("\uD83D\uDE4B Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
-        if (!rollcall.entries.isEmpty()) {
-            RollcallEntry best = rollcall.entries.getFirst();
-            for (RollcallEntry entry : rollcall.entries) {
-                if (entry.times > best.times) best = entry;
-            }
-            if (best.times > 5)
-                text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
-        }
-        telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());
     }
 
     private void cleanupOldReminders() {

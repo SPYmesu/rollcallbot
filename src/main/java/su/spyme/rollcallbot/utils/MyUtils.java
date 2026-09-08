@@ -108,6 +108,22 @@ public class MyUtils {
         setAndSave(chat.config, "rollcalls." + rollcall.rollcallMessageId, null);
     }
 
+    public static void finishRollcall(Chat chat, Rollcall rollcall) {
+        telegramAPI.deleteMessage(rollcall.chatId, rollcall.rollcallMessageId);
+        telegramAPI.deleteMessage(rollcall.chatId, rollcall.tagAllMessageId);
+        removeRollcall(chat, rollcall);
+        StringBuilder text = new StringBuilder("\uD83D\uDE4B Перекличка `#" + rollcall.rollcallMessageId + "` завершена");
+        if (!rollcall.entries.isEmpty()) {
+            RollcallEntry best = rollcall.entries.getFirst();
+            for (RollcallEntry entry : rollcall.entries) {
+                if (entry.times > best.times) best = entry;
+            }
+            if (best.times > 5)
+                text.append("\n\nИнтересный факт: ").append(best.student.name).append(" кликнул на кнопку ").append(best.times).append(" раз!");
+        }
+        telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, text.toString());
+    }
+
     public static InlineKeyboardMarkup getRollcallInline(Chat chat, Rollcall rollcall) {
         List<String> buttons = chat.settings.buttonNames;
         return InlineKeyboardMarkup.builder()

@@ -111,17 +111,18 @@ public class TelegramAPI {
         return null;
     }
 
-    public void editMessageReplyMarkup(long chatId, int messageId, String text, InlineKeyboardMarkup inline) {
+    public void editMessageText(long chatId, int messageId, String text, InlineKeyboardMarkup inline) {
         try {
             EditMessageText editMessage = EditMessageText.builder()
                     .chatId(chatId)
                     .messageId(messageId)
                     .text(text)
                     .replyMarkup(inline)
+                    .parseMode("Markdown")
                     .build();
             telegramClient.execute(editMessage);
         } catch (TelegramApiException ex) {
-            logger.error("Error while editMessageReplyMarkup({}, {})", chatId, messageId);
+            logger.error("Error while editMessageText({}, {})", chatId, messageId);
             ex.printStackTrace();
         }
     }

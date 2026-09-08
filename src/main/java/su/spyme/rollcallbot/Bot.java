@@ -383,7 +383,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             chat.settings.setMessage(toSet);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(
+                            telegramAPI.editMessageText(
                                     chatId,
                                     menuId,
                                     """
@@ -445,7 +445,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             chat.setStudents(students);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
+                            telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (NumberFormatException ignored) {
                             if (split.length > 5) {
                                 reading.put(userId, metadata);
@@ -477,7 +477,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             student.setName(toSet);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
+                            telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (IOException ignored1) {
                             sendError(chatId, 0, "Не удалось сохранить настройки студента");
                         }
@@ -501,7 +501,7 @@ public class Bot implements LongPollingSingleThreadUpdateConsumer {
                             student.setBirthdate(instant);
                             saveChat(chat);
                             telegramAPI.deleteMessage(chatId, infoMessage);
-                            telegramAPI.editMessageReplyMarkup(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
+                            telegramAPI.editMessageText(chatId, menuId, getStudentMenu(chat, student), getStudentInline(chat, student));
                         } catch (IOException ignored1) {
                             sendError(chatId, 0, "Не удалось сохранить настройки студента");
                         }

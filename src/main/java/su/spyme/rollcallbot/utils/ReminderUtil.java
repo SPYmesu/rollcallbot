@@ -19,6 +19,7 @@ import static su.spyme.rollcallbot.utils.StringUtils.tag;
 
 public class ReminderUtil {
     private static final Logger logger = LoggerFactory.getLogger(ReminderUtil.class);
+    private static final int[] REMINDERS = {5, 15, 30};
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Set<String> processedReminders = new HashSet<>();
 
@@ -51,36 +52,29 @@ public class ReminderUtil {
         long timeLeft = finishTime - currentTime;
         String rollcallKey = rollcall.chatId + "_" + rollcall.threadId + "_" + rollcall.startTime;
         if (timeLeft <= 0) {
-            String finishKey = rollcallKey + "_finish";
-            if (!processedReminders.contains(finishKey)) {
+            if (processedReminders.add(rollcallKey + "_finish")) {
                 finishRollcall(chat, rollcall);
-                processedReminders.add(finishKey);
             }
         } else {
-            long timer = TimeUnit.MINUTES.toMillis(chat.settings.timer);
-            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(30), "30min");
-            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(15), "15min");
-            checkReminder(rollcall, timeLeft, timer, rollcallKey, TimeUnit.MINUTES.toMillis(5), "5min");
+            checkReminders(rollcall, timeLeft, chat.settings.timer, rollcallKey);
         }
     }
 
-    private void checkReminder(Rollcall rollcall, long timeLeft, long timer, String rollcallKey, long reminderTime, String reminderType) {
-        if (reminderTime < timer && timeLeft <= reminderTime) {
-            String reminderKey = rollcallKey + "_" + reminderType;
-            if (!processedReminders.contains(reminderKey)) {
-                processReminder(rollcall, reminderType);
-                processedReminders.add(reminderKey);
+    private void checkReminders(Rollcall rollcall, long timeLeft, int timer, String rollcallKey) {
+        for (int i = 0; i < REMINDERS.length; i++) {
+            int minutes = REMINDERS[i];
+            if (minutes >= timer || timeLeft > TimeUnit.MINUTES.toMillis(minutes)) continue;
+            if (processedReminders.add(rollcallKey + "_" + minutes + "min")) {
+                sendReminder(rollcall, minutes);
             }
+            for (int j = i + 1; j < REMINDERS.length; j++) {
+                processedReminders.add(rollcallKey + "_" + REMINDERS[j] + "min");
+            }
+            return;
         }
     }
 
-    private void processReminder(Rollcall rollcall, String reminderType) {
-        long minutesLeft = switch (reminderType) {
-            case "30min" -> 30;
-            case "15min" -> 15;
-            case "5min" -> 5;
-            default -> 0;
-        };
+    private void sendReminder(Rollcall rollcall, int minutesLeft) {
         List<Student> ignore = rollcall.getStudents(RollcallAnswer.IGNORE);
         if (ignore.isEmpty()) return;
         Message ignoreMessage = telegramAPI.sendMessage(rollcall.chatId, rollcall.threadId, tag(ignore) + "\n\n⚠ Не забудьте сделать выбор выше, иначе Вам проставят отсутствие...\n⌛ Осталось " + minutesLeft + " минут.");

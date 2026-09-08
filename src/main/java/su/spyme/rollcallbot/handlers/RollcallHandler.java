@@ -69,7 +69,11 @@ public class RollcallHandler {
                 return;
             }
             rollcall.setTagAllMessageId(tagAllMessage.getMessageId());
-            Message rollcallMessage = telegramAPI.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcall.text);
+            String rollcallText = rollcall.text;
+            if (chat.settings.timer != -1) {
+                rollcallText += "\n\n⏳ Перекличка завершится через " + chat.settings.timer + " мин.";
+            }
+            Message rollcallMessage = telegramAPI.sendMessageInline(chatId, threadId, getRollcallInline(chat, rollcall), rollcallText);
             if (rollcallMessage == null) {
                 telegramAPI.sendError(chatId, threadId, "❌ Не удалось отправить сообщение переклички");
                 return;

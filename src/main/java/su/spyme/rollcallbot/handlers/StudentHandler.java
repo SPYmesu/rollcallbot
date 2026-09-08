@@ -32,7 +32,7 @@ public class StudentHandler {
             instant = parseDate(args[1]);
         } catch (Exception ignored) {
         }
-        if (targetName.split(" ").length < 2 || instant == null) {
+        if (!Student.isValidName(targetName) || instant == null) {
             telegramAPI.sendMessage(chatId, threadId, "Нужно указать фамилию и имя студента, а так же дату его рождения в формате дд.ММ.гггг");
             return;
         }

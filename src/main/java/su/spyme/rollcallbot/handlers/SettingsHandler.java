@@ -259,9 +259,9 @@ public class SettingsHandler {
             }
             case "name" -> {
                 try {
-                    if (toSet.split(" ").length != 2) {
+                    if (!Student.isValidName(toSet)) {
                         reading.put(userId, metadata);
-                        telegramAPI.sendMessage(chatId, "❌ Нужно указать только фамилию и имя студента");
+                        telegramAPI.sendMessage(chatId, "❌ Нужно указать фамилию и имя студента");
                         return true;
                     }
                     long studentId = Long.parseLong(split[4]);

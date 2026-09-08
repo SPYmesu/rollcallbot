@@ -7,10 +7,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import su.spyme.rollcallbot.objects.*;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -226,7 +224,7 @@ public class MyUtils {
                 """.formatted(
                 chat.students.indexOf(student) + 1,
                 student.name,
-                student.birthdate.isBefore(Instant.EPOCH) ? "не указана" : DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.systemDefault()).format(student.birthdate)
+                hasBirthdate(student) ? instantToString(student.birthdate) : "не указана"
         );
     }
 
@@ -332,7 +330,12 @@ public class MyUtils {
         }
     }
 
+    public static boolean hasBirthdate(Student student) {
+        return student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate().isAfter(LocalDate.EPOCH);
+    }
+
     public static boolean isBirthdayToday(Student student) {
+        if (!hasBirthdate(student)) return false;
         LocalDate today = LocalDate.now();
         LocalDate birthDate = student.birthdate.atZone(ZoneId.systemDefault()).toLocalDate();
         return birthDate.getMonth() == today.getMonth() &&
